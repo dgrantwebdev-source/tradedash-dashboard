@@ -1,0 +1,6 @@
+strategy,total_trades,total_return_points,total_return_dollars,win_rate,avg_win,avg_loss,profit_factor,max_drawdown_points,max_drawdown_dollars,max_drawdown_pct,sharpe_ratio,best_trade,worst_trade,avg_trade
+Gap Fill,5,10.0,500.0,80.0,6.375,-15.5,1.6451612903225807,15.5,775.0,0.775,3.117465306419292,11.25,-15.5,2.0
+ORB Breakout,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+IB Breakout,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+Mean Reversion,54,-97.0,-4850.0,62.96296296296296,7.955882352941177,-18.375,0.7360544217687075,161.75,8087.5,8.0875,-1.3448910667259397,21.25,-124.75,-1.7962962962962963
+Event-Driven,5,30.25,1512.5,100.0,6.05,0.0,1512.5,0.0,0.0,0.0,17.540047984599813,12.25,0.25,6.05
