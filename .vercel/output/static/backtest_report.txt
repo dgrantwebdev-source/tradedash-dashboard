@@ -1,0 +1,108 @@
+
+======================================================================
+BACKTEST RESULTS: AUGUST 2026 - ES=F (E-mini S&P 500 Futures)
+======================================================================
+Data Period: 2026-08-01 to 2026-08-31
+Initial Capital: $100,000.00
+Contract: ES=F (Multiplier: $50, Tick: $12.5)
+
+======================================================================
+STRATEGY PERFORMANCE SUMMARY
+======================================================================
+
+
+--- Gap Fill ---
+  Total Trades:        5
+  Total Return:        10.00 points ($500.00)
+  Win Rate:            80.0%
+  Avg Win:             6.38 points
+  Avg Loss:            -15.50 points
+  Profit Factor:       1.65
+  Max Drawdown:        $775.00 (0.8%)
+  Sharpe Ratio:        3.12
+  Best Trade:          11.25 points
+  Worst Trade:         -15.50 points
+  Avg Trade:           2.00 points
+
+--- ORB Breakout ---
+  Total Trades:        0
+  Total Return:        0.00 points ($0.00)
+  Win Rate:            0.0%
+  Avg Win:             0.00 points
+  Avg Loss:            0.00 points
+  Profit Factor:       0.00
+  Max Drawdown:        $0.00 (0.0%)
+  Sharpe Ratio:        0.00
+  Best Trade:          0.00 points
+  Worst Trade:         0.00 points
+  Avg Trade:           0.00 points
+
+--- IB Breakout ---
+  Total Trades:        0
+  Total Return:        0.00 points ($0.00)
+  Win Rate:            0.0%
+  Avg Win:             0.00 points
+  Avg Loss:            0.00 points
+  Profit Factor:       0.00
+  Max Drawdown:        $0.00 (0.0%)
+  Sharpe Ratio:        0.00
+  Best Trade:          0.00 points
+  Worst Trade:         0.00 points
+  Avg Trade:           0.00 points
+
+--- Mean Reversion ---
+  Total Trades:        54
+  Total Return:        -97.00 points ($-4,850.00)
+  Win Rate:            63.0%
+  Avg Win:             7.96 points
+  Avg Loss:            -18.38 points
+  Profit Factor:       0.74
+  Max Drawdown:        $8,087.50 (8.1%)
+  Sharpe Ratio:        -1.34
+  Best Trade:          21.25 points
+  Worst Trade:         -124.75 points
+  Avg Trade:           -1.80 points
+
+--- Event-Driven ---
+  Total Trades:        5
+  Total Return:        30.25 points ($1,512.50)
+  Win Rate:            100.0%
+  Avg Win:             6.05 points
+  Avg Loss:            0.00 points
+  Profit Factor:       1512.50
+  Max Drawdown:        $0.00 (0.0%)
+  Sharpe Ratio:        17.54
+  Best Trade:          12.25 points
+  Worst Trade:         0.25 points
+  Avg Trade:           6.05 points
+
+======================================================================
+RANKINGS
+======================================================================
+
+Best Win Rate:     Event-Driven (100.0%)
+Best Profit Factor: Event-Driven (1512.50)
+Best Sharpe Ratio:  Event-Driven (17.54)
+Best Total Return:  Event-Driven ($1,512.50)
+Lowest Drawdown:    ORB Breakout ($0.00)
+
+======================================================================
+IB BREAKOUT DIRECTION ANALYSIS
+======================================================================
+Long Win Rate:  0/0 trades
+Short Win Rate: 0/0 trades
+
+======================================================================
+IMPORTANT DISCLAIMERS
+======================================================================
+1. This is a BACKTEST on HISTORICAL/SIMULATED data, NOT live trading results
+2. Past performance does NOT guarantee future results
+3. Slippage, commissions, and market impact are NOT fully modeled
+4. Data quality may vary - verify with your broker's data
+5. This is for EDUCATIONAL purposes only - not financial advice
+6. Always paper trade before risking real capital
+7. Prop firms have specific rules - verify compatibility before live trading
+
+======================================================================
+Generated: 2026-09-14 12:38:11
+======================================================================
