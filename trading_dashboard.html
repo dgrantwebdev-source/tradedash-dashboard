@@ -4815,7 +4815,7 @@ const BoomBapPlayer = {
   init() {
     // Load YouTube IFrame API
     const tag = document.createElement('script');
-    tag.src = 'https://www.youtube-nocookie.com/iframe_api';
+    tag.src = 'https://www.youtube.com/iframe_api';
     document.head.appendChild(tag);
     window.onYouTubeIframeAPIReady = () => {
       this.player = new YT.Player('yt-player', {
