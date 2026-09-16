@@ -1217,17 +1217,18 @@ function cacheGet(key) {
   try {
     const raw = localStorage.getItem('td_' + key);
     if (!raw) return null;
-    const { data, ts } = JSON.parse(raw);
-    if (Date.now() - ts > CACHE_TTL) { localStorage.removeItem('td_' + key); return null; }
+    const { data, ts, ttl } = JSON.parse(raw);
+    if (Date.now() - ts > (ttl || CACHE_TTL)) { localStorage.removeItem('td_' + key); return null; }
     return data;
   } catch (e) { return null; }
 }
-function cacheSet(key, data) {
-  try { localStorage.setItem('td_' + key, JSON.stringify({ data, ts: Date.now() })); } catch (e) {}
+function cacheSet(key, data, ttlMs) {
+  try { localStorage.setItem('td_' + key, JSON.stringify({ data, ts: Date.now(), ttl: ttlMs || CACHE_TTL })); } catch (e) {}
 }
 
 const DataFetcher = {
   dataSource: 'unknown', // 'backend', 'static', 'proxy', or 'sample'
+  _staticFailed: false,  // Set true after first 404 — skip static tier
 
   // Parse Yahoo Finance chart response into our candle format
   _parseYahooResponse(raw) {
@@ -1262,9 +1263,9 @@ const DataFetcher = {
   },
 
   // Yahoo Finance limits 15m data to 60 days — auto-downgrade for longer ranges
+  // Also downgrade 1mo to 1h to match what the GitHub Action produces
   _normalizeParams(symbol, interval, range) {
-    if (interval === '15m' && ['3mo', '6mo', '1y'].includes(range)) {
-      console.log(`Auto-downgrading 15m ${range} to 1h (15m limited to 60 days)`);
+    if (interval === '15m' && ['1mo', '3mo', '6mo', '1y'].includes(range)) {
       interval = '1h';
     }
     return { symbol, interval, range };
@@ -1286,14 +1287,25 @@ const DataFetcher = {
 
   // Tier 2: Try static JSON files (GitHub Action updated)
   async _fetchFromStatic(symbol, interval, range) {
+    if (this._staticFailed) throw new Error('Static data unavailable (cached)');
+
     const cacheKey = `static_${symbol}_${interval}_${range}`;
     const cached = cacheGet(cacheKey);
     if (cached) return cached;
 
+    // Check for negative cache (known 404)
+    const negKey = `static_neg_${symbol}_${interval}_${range}`;
+    const negCached = cacheGet(negKey);
+    if (negCached) throw new Error('Static data 404 (cached)');
+
     const fileName = this._staticFileName(symbol, interval, range);
     try {
-      const res = await fetch(`${DATA_BASE}/${fileName}`, { signal: AbortSignal.timeout(5000) });
-      if (!res.ok) throw new Error(`Static ${res.status}`);
+      const res = await fetch(`${DATA_BASE}/${fileName}`, { signal: AbortSignal.timeout(3000) });
+      if (!res.ok) {
+        // Cache the 404 for 10 minutes to avoid hammering
+        cacheSet(negKey, true, 10 * 60 * 1000);
+        throw new Error(`Static ${res.status}`);
+      }
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
         cacheSet(cacheKey, data);
@@ -1311,9 +1323,14 @@ const DataFetcher = {
     const cached = cacheGet(cacheKey);
     if (cached) return cached;
 
+    // Check for negative cache (known proxy failure, cached for 10 min)
+    const negKey = `proxy_neg_${symbol}_${interval}_${range}`;
+    const negCached = cacheGet(negKey);
+    if (negCached) throw new Error('Proxy failed (cached)');
+
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
     try {
-      const res = await fetch(`https://api.allorigins.win/get?url=` + encodeURIComponent(yahooUrl), { signal: AbortSignal.timeout(10000) });
+      const res = await fetch(`https://api.allorigins.win/get?url=` + encodeURIComponent(yahooUrl), { signal: AbortSignal.timeout(8000) });
       if (!res.ok) throw new Error(`Proxy ${res.status}`);
       const json = await res.json();
       const candles = this._parseYahooResponse(json);
@@ -1323,6 +1340,8 @@ const DataFetcher = {
       }
       throw new Error('No candles in response');
     } catch (e) {
+      // Cache proxy failures for 10 minutes to reduce noise
+      cacheSet(negKey, true, 10 * 60 * 1000);
       throw e;
     }
   },
@@ -1368,18 +1387,22 @@ const DataFetcher = {
         }
       } catch (e) { /* fall through */ }
     }
-    // Tier 2: Static JSON
-    try {
-      const res = await fetch(`${DATA_BASE}/prices.json`, { signal: AbortSignal.timeout(3000) });
-      if (res.ok) {
-        const prices = await res.json();
-        for (const [sym, data] of Object.entries(prices)) {
-          state.prices[sym] = { ...data, data: [] };
+    // Tier 2: Static JSON (skip if already failed)
+    if (!this._staticFailed) {
+      try {
+        const res = await fetch(`${DATA_BASE}/prices.json`, { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          const prices = await res.json();
+          for (const [sym, data] of Object.entries(prices)) {
+            state.prices[sym] = { ...data, data: [] };
+          }
+          this.dataSource = 'static';
+          return;
         }
-        this.dataSource = 'static';
-        return;
-      }
-    } catch (e) { /* fall through */ }
+        // 404 — mark static as unavailable
+        this._staticFailed = true;
+      } catch (e) { this._staticFailed = true; }
+    }
     // Tier 3: Fetch ES only via proxy, derive others
     try {
       const data = await this.fetchYahoo('ES=F', '5m', '1d');
@@ -1452,7 +1475,13 @@ const DataFetcher = {
       DataFetcher.dataSource = 'static';
       return;
     }
-  } catch (e) {}
+    // meta.json 404 — static data not yet generated
+    DataFetcher._staticFailed = true;
+    console.log('No static data yet (GitHub Action not run)');
+  } catch (e) {
+    DataFetcher._staticFailed = true;
+    console.log('No static data available');
+  }
   console.log('No backend or static data — using sample data');
 })();
 
@@ -4786,13 +4815,13 @@ const BoomBapPlayer = {
   init() {
     // Load YouTube IFrame API
     const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
+    tag.src = 'https://www.youtube-nocookie.com/iframe_api';
     document.head.appendChild(tag);
     window.onYouTubeIframeAPIReady = () => {
       this.player = new YT.Player('yt-player', {
-        height: '0', width: '0',
+        height: '1', width: '1',
         videoId: this.tracks[0].ytId,
-        playerVars: { autoplay: 0, controls: 0, disablekb: 1 },
+        playerVars: { autoplay: 0, controls: 0, disablekb: 1, origin: window.location.origin },
         events: {
           onReady: () => { this.ready = true; },
           onStateChange: (e) => this._onStateChange(e)
@@ -4923,6 +4952,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 <!-- Hidden YouTube player -->
-<div id="yt-player" style="position:fixed;top:-999px;left:-999px;width:0;height:0;opacity:0"></div>
+<div id="yt-player" style="position:absolute;top:0;left:0;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1"></div>
 </body>
 </html>
