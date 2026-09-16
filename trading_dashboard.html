@@ -357,7 +357,7 @@ body.player-expanded{padding-bottom:80px}
     <span>📊 <span id="regimeText">Loading...</span></span>
     <span>
       <button class="btn" id="autoTradeBtn" onclick="toggleAutoTrade()" style="background:var(--green);color:#000">
-        AUTO: ON
+        AUTO: ES+NQ
       </button>
     </span>
   </div>
@@ -1193,6 +1193,7 @@ const CONFIG = {
 let state = {
   currentSymbol: 'ES=F',
   candles: [],
+  multiCandles: {}, // { 'ES=F': [...], 'NQ=F': [...] } for auto-trading
   trades: JSON.parse(localStorage.getItem('trades') || '[]'),
   openPositions: JSON.parse(localStorage.getItem('openPositions') || '[]'),
   dailyPnL: 0,
@@ -1644,6 +1645,63 @@ const Strategies = {
     if (strength >= 0.75) return { direction: 'LONG', strength, trends };
     if (strength <= 0.25) return { direction: 'SHORT', strength, trends };
     return { direction: 'NEUTRAL', strength, trends };
+  },
+
+  // VWAP Mean Reversion — Council Validated (52.9% WR, PF 3.18)
+  vwap(candles) {
+    if (candles.length < 30) return { signal: null, reason: 'Insufficient data' };
+    const highs = candles.map(c => c.high);
+    const lows = candles.map(c => c.low);
+    const closes = candles.map(c => c.close);
+    const volumes = candles.map(c => c.volume || 1);
+    const atr = Indicators.atr(highs, lows, closes);
+    const currentATR = atr[atr.length - 1] || 20;
+    
+    // Calculate VWAP from start of session
+    let cumPV = 0, cumVol = 0;
+    const vwapValues = [];
+    for (let i = 0; i < candles.length; i++) {
+      const tp = (highs[i] + lows[i] + closes[i]) / 3;
+      cumPV += tp * volumes[i];
+      cumVol += Math.max(1, volumes[i]);
+      vwapValues.push(cumPV / cumVol);
+    }
+    
+    const price = closes[closes.length - 1];
+    const prevPrice = closes[closes.length - 2];
+    const vwap = vwapValues[vwapValues.length - 1];
+    const deviation = (price - vwap) / currentATR;
+    
+    // Deviation thresholds (from council-validated params)
+    const devs = [0.4, 0.6, 0.8];
+    
+    // LONG: price below VWAP by deviation AND starting to revert up
+    for (const dev of devs) {
+      if (price < vwap - currentATR * dev && prevPrice < price) {
+        return {
+          signal: 'LONG',
+          confidence: 0.55 + (dev - 0.4) * 0.3,
+          reason: `VWAP reversion: ${(price - vwap).toFixed(2)} below VWAP (${dev.toFixed(1)}x ATR)`,
+          stop: price - currentATR * 0.6,
+          target: vwap
+        };
+      }
+    }
+    
+    // SHORT: price above VWAP by deviation AND starting to revert down
+    for (const dev of devs) {
+      if (price > vwap + currentATR * dev && prevPrice > price) {
+        return {
+          signal: 'SHORT',
+          confidence: 0.55 + (dev - 0.4) * 0.3,
+          reason: `VWAP rejection: ${(price - vwap).toFixed(2)} above VWAP (${dev.toFixed(1)}x ATR)`,
+          stop: price + currentATR * 0.6,
+          target: vwap
+        };
+      }
+    }
+    
+    return { signal: null, reason: `VWAP: price ${deviation.toFixed(2)}x ATR from VWAP` };
   }
 };
 
@@ -2583,10 +2641,10 @@ function isNYSession() {
 function toggleAutoTrade() {
   AutoTrader.enabled = !AutoTrader.enabled;
   const btn = document.getElementById('autoTradeBtn');
-  btn.textContent = `AUTO: ${AutoTrader.enabled ? 'ON' : 'OFF'}`;
+  btn.textContent = `AUTO: ${AutoTrader.enabled ? 'ES+NQ' : 'OFF'}`;
   btn.style.background = AutoTrader.enabled ? 'var(--green)' : 'var(--red)';
   btn.style.color = AutoTrader.enabled ? '#000' : '#fff';
-  showAlert(`Auto-trading ${AutoTrader.enabled ? 'ENABLED' : 'DISABLED'}`, AutoTrader.enabled ? 'success' : 'warning');
+  showAlert(`Auto-trading ${AutoTrader.enabled ? 'ENABLED (ES + NQ)' : 'DISABLED'}`, AutoTrader.enabled ? 'success' : 'warning');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2676,6 +2734,24 @@ async function fetchData() {
     updateUI();
     document.getElementById('statusDot').style.background = 'var(--yellow)';
     document.getElementById('statusText').textContent = 'Sample Data - Start server.py for live data';
+  }
+}
+
+// Fetch candles for auto-trading symbols (ES + NQ)
+const AUTO_TRADE_SYMBOLS = ['ES=F', 'NQ=F'];
+async function fetchAutoTradeData() {
+  for (const sym of AUTO_TRADE_SYMBOLS) {
+    try {
+      const candles = await DataFetcher.fetchYahoo(sym, '15m', '5d');
+      if (candles && candles.length > 0) {
+        state.multiCandles[sym] = candles;
+      }
+    } catch (e) {
+      // Use existing data if fetch fails
+      if (!state.multiCandles[sym]) {
+        state.multiCandles[sym] = state.candles && state.currentSymbol === sym ? state.candles : [];
+      }
+    }
   }
 }
 
@@ -2830,10 +2906,6 @@ const AutoTrader = {
   
   checkAndExecute() {
     if (!this.enabled) return;
-    if (!state.candles || state.candles.length < 20) return;
-    
-    // Don't trade if we already have an open position (CORRELATION FILTER)
-    if (state.openPositions.length > 0) return;
     
     // Check circuit breakers
     const circuit = RiskManager.checkCircuitBreakers();
@@ -2854,39 +2926,50 @@ const AutoTrader = {
     // Trailing stop check for all open positions
     this.checkTrailingStops();
     
-    const closes = state.candles.map(c => c.close);
+    // Max 2 open positions across both symbols
+    if (state.openPositions.length >= 2) return;
+    
     const vix = state.prices['CL=F'] ? Math.abs(state.prices['CL=F'].change) * 5 + 15 : 25;
     
-    // Collect all signals with confidence
+    // Scan BOTH ES and NQ for signals
     const allSignals = [];
-    const strategies = [
-      { name: 'TACO', signal: Strategies.taco(state.candles) },
-      { name: 'FAFO', signal: Strategies.fafo(state.candles, vix) },
-      { name: 'ORB', signal: Strategies.orb(state.candles) }
-    ];
-    
-    for (const strat of strategies) {
-      if (!strat.signal || !strat.signal.signal) continue;
+    for (const sym of AUTO_TRADE_SYMBOLS) {
+      const candles = state.multiCandles[sym];
+      if (!candles || candles.length < 20) continue;
       
-      // Check if we already took this signal recently
-      const lastTime = this.lastSignalTime[strat.name] || 0;
-      if (Date.now() - lastTime < this.minSignalGap) continue;
+      // Skip if we already have a position on this symbol
+      if (state.openPositions.some(p => p.symbol === sym)) continue;
       
-      // CORRELATION CHECK: TACO and FAFO are both fear-based LONG strategies
-      // Don't let both fire simultaneously
-      const isFearBased = strat.name === 'TACO' || strat.name === 'FAFO';
-      const hasFearBasedOpen = state.openPositions.some(p => p.strategy === 'TACO' || p.strategy === 'FAFO');
-      if (isFearBased && hasFearBasedOpen) continue;
+      const strategies = [
+        { name: 'VWAP', signal: Strategies.vwap(candles) },
+        { name: 'TACO', signal: Strategies.taco(candles) },
+        { name: 'FAFO', signal: Strategies.fafo(candles, vix) },
+        { name: 'ORB', signal: Strategies.orb(candles) }
+      ];
       
-      allSignals.push({ name: strat.name, ...strat.signal });
+      for (const strat of strategies) {
+        if (!strat.signal || !strat.signal.signal) continue;
+        
+        // Check if we already took this signal recently on this symbol
+        const signalKey = `${strat.name}_${sym}`;
+        const lastTime = this.lastSignalTime[signalKey] || 0;
+        if (Date.now() - lastTime < this.minSignalGap) continue;
+        
+        // CORRELATION CHECK: TACO and FAFO are both fear-based LONG strategies
+        const isFearBased = strat.name === 'TACO' || strat.name === 'FAFO';
+        const hasFearBasedOpen = state.openPositions.some(p => p.strategy === 'TACO' || p.strategy === 'FAFO');
+        if (isFearBased && hasFearBasedOpen) continue;
+        
+        allSignals.push({ name: strat.name, symbol: sym, ...strat.signal });
+      }
     }
     
-    // Sort by confidence — take the BEST signal only
+    // Sort by confidence — take the BEST signal
     allSignals.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
     
     if (allSignals.length > 0) {
       const best = allSignals[0];
-      this.executeAutoTrade(best.name, best);
+      this.executeAutoTrade(best.name, best, best.symbol);
     }
   },
   
@@ -2927,28 +3010,33 @@ const AutoTrader = {
     });
   },
   
-  executeAutoTrade(strategyName, signal) {
-    const currentPrice = state.prices[state.currentSymbol]?.price;
+  executeAutoTrade(strategyName, signal, symbol) {
+    symbol = symbol || state.currentSymbol;
+    const currentPrice = state.prices[symbol]?.price;
     if (!currentPrice) return;
     
+    // Use the correct candles for this symbol
+    const candles = state.multiCandles[symbol] || state.candles;
+    if (!candles || candles.length < 20) return;
+    
     // Calculate ATR for stops
-    const highs = state.candles.map(c => c.high);
-    const lows = state.candles.map(c => c.low);
-    const closes = state.candles.map(c => c.close);
+    const highs = candles.map(c => c.high);
+    const lows = candles.map(c => c.low);
+    const closes = candles.map(c => c.close);
     const atr = Indicators.atr(highs, lows, closes);
     const currentATR = atr[atr.length - 1] || 20;
     
     let stop, target;
     if (signal.signal === 'LONG') {
-      stop = currentPrice - currentATR * 1.5;
-      target = currentPrice + currentATR * 2;
+      stop = currentPrice - currentATR * 0.6;   // Tight stop per VWAP strategy
+      target = currentPrice + currentATR * 1.5;
     } else {
-      stop = currentPrice + currentATR * 1.5;
-      target = currentPrice - currentATR * 2;
+      stop = currentPrice + currentATR * 0.6;
+      target = currentPrice - currentATR * 1.5;
     }
     
     // Position sizing using DRAWDOWN-based risk
-    const config = CONFIG.symbols[state.currentSymbol] || { multiplier: 50 };
+    const config = CONFIG.symbols[symbol] || { multiplier: 50 };
     const stopDistance = Math.abs(currentPrice - stop);
     const contracts = RiskManager.calculatePositionSize(stopDistance, config.multiplier);
     
@@ -2961,7 +3049,7 @@ const AutoTrader = {
       id: Date.now(),
       strategy: strategyName,
       direction: signal.signal,
-      symbol: state.currentSymbol,
+      symbol: symbol,
       entry: currentPrice,
       stop: stop,
       target: target,
@@ -2976,11 +3064,15 @@ const AutoTrader = {
     state.openPositions.push(trade);
     localStorage.setItem('openPositions', JSON.stringify(state.openPositions));
     
-    // Show alert with all details
-    const riskAmount = stopDistance * contracts * config.multiplier;
-    showAlert(`AUTO: ${signal.signal} ${strategyName} @ ${currentPrice.toFixed(2)} | ${contracts} contracts | Risk: $${riskAmount.toFixed(0)} | Stop: ${stop.toFixed(2)} | Target: ${target.toFixed(2)}`, 'success');
+    // Record signal time for this strategy+symbol combo
+    this.lastSignalTime[`${strategyName}_${symbol}`] = Date.now();
     
-    console.log(`[AUTO TRADER] Executed ${strategyName}: ${signal.signal} @ ${currentPrice} | ${contracts} contracts | Risk: $${riskAmount}`);
+    const symName = config.name || symbol;
+    const riskAmount = stopDistance * contracts * config.multiplier;
+    showAlert(`AUTO: ${signal.signal} ${strategyName} ${symName} @ ${currentPrice.toFixed(2)} | ${contracts} ct | Risk: $${riskAmount.toFixed(0)} | Stop: ${stop.toFixed(2)} | Target: ${target.toFixed(2)}`, 'success');
+    
+    console.log(`[AUTO TRADER] ${strategyName} ${symName}: ${signal.signal} @ ${currentPrice} | ${contracts} ct | Risk: $${riskAmount}`);
+    updateUI();
   }
 };
 
@@ -4911,6 +5003,10 @@ SessionTracker.init();
 setInterval(fetchData, CONFIG.pollInterval);
 setInterval(updateClock, 1000);
 setInterval(updateUI, 5000);
+
+// Fetch ES+NQ data for auto-trading every 2 minutes
+fetchAutoTradeData(); // Initial fetch
+setInterval(fetchAutoTradeData, 120000);
 
 // Auto-trader check every 30 seconds
 setInterval(() => {
