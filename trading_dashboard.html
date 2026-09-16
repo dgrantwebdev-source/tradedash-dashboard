@@ -903,33 +903,133 @@ let state = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// DATA FETCHING - Backend API (No CORS)
+// DATA FETCHING - 3-Tier: Backend → CORS Proxy → Sample Data
 // ═══════════════════════════════════════════════════════════
 const API_BASE = window.location.origin;
+// CORS proxy for GitHub Pages / static deployments (no backend server)
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?url='
+];
+
+// Detect if we have a local backend server
+let HAS_BACKEND = false;
 
 const DataFetcher = {
-  async fetchYahoo(symbol, interval='15m', range='5d') {
+  dataSource: 'unknown', // 'backend', 'proxy', or 'sample'
+
+  // Parse Yahoo Finance chart response into our candle format
+  _parseYahooResponse(raw) {
+    const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const result = data.chart.result[0];
+    const candles = [];
+    const quotes = result.indicators.quote[0];
+    for (let i = 0; i < result.timestamp.length; i++) {
+      if (quotes.open[i] !== null && quotes.close[i] !== null) {
+        candles.push({
+          time: result.timestamp[i],
+          open: parseFloat(quotes.open[i].toFixed(2)),
+          high: parseFloat(quotes.high[i].toFixed(2)),
+          low: parseFloat(quotes.low[i].toFixed(2)),
+          close: parseFloat(quotes.close[i].toFixed(2)),
+          volume: quotes.volume[i] || 0
+        });
+      }
+    }
+    return candles;
+  },
+
+  // Yahoo Finance limits 15m data to 60 days — auto-downgrade for longer ranges
+  _normalizeParams(symbol, interval, range) {
+    if (interval === '15m' && ['3mo', '6mo', '1y'].includes(range)) {
+      console.log(`Auto-downgrading 15m ${range} to 1h (15m limited to 60 days)`);
+      interval = '1h';
+    }
+    return { symbol, interval, range };
+  },
+
+  // Try backend server first (local dev)
+  async _fetchFromBackend(symbol, interval, range) {
+    if (!HAS_BACKEND) throw new Error('No backend');
     const url = `${API_BASE}/api/candles?symbol=${encodeURIComponent(symbol)}&interval=${interval}&range=${range}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
     if (!res.ok) throw new Error(`API error: ${res.status}`);
     return await res.json();
   },
 
+  // Try CORS proxy → Yahoo Finance (for GitHub Pages)
+  async _fetchViaProxy(symbol, interval, range) {
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
+    for (const proxy of CORS_PROXIES) {
+      try {
+        const res = await fetch(proxy + encodeURIComponent(yahooUrl), { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) continue;
+        const text = await res.text();
+        return this._parseYahooResponse(text);
+      } catch (e) {
+        console.warn(`Proxy ${proxy} failed for ${symbol}:`, e.message);
+        continue;
+      }
+    }
+    throw new Error('All CORS proxies failed');
+  },
+
+  // Main fetch method — tries backend, then proxy, returns null if both fail
+  async fetchYahoo(symbol, interval='15m', range='5d') {
+    ({ symbol, interval, range } = this._normalizeParams(symbol, interval, range));
+    // Tier 1: Backend server
+    try {
+      const data = await this._fetchFromBackend(symbol, interval, range);
+      this.dataSource = 'backend';
+      return data;
+    } catch (e) { /* fall through */ }
+    // Tier 2: CORS proxy
+    try {
+      const data = await this._fetchViaProxy(symbol, interval, range);
+      this.dataSource = 'proxy';
+      return data;
+    } catch (e) { /* fall through */ }
+    // Tier 3: Null — caller decides what to do
+    this.dataSource = 'sample';
+    return null;
+  },
+
   async fetchAllPrices() {
-    const url = `${API_BASE}/api/prices`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`API error: ${res.status}`);
-    const prices = await res.json();
-    
-    // Merge into state
-    for (const [sym, data] of Object.entries(prices)) {
-      state.prices[sym] = {
-        price: data.price,
-        change: data.change,
-        high: data.high,
-        low: data.low,
-        data: []
-      };
+    // Try backend first
+    if (HAS_BACKEND) {
+      try {
+        const url = `${API_BASE}/api/prices`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          const prices = await res.json();
+          for (const [sym, data] of Object.entries(prices)) {
+            state.prices[sym] = {
+              price: data.price, change: data.change,
+              high: data.high, low: data.low, data: []
+            };
+          }
+          return;
+        }
+      } catch (e) { /* fall through */ }
+    }
+    // Fallback: fetch each symbol via proxy
+    for (const sym of Object.keys(SAMPLE_PRICES)) {
+      try {
+        const data = await this.fetchYahoo(sym, '5m', '1d');
+        if (data && data.length > 1) {
+          const last = data[data.length - 1];
+          const prev = data[data.length - 2];
+          state.prices[sym] = {
+            price: last.close,
+            change: parseFloat(((last.close - prev.close) / prev.close * 100).toFixed(2)),
+            high: Math.max(...data.slice(-20).map(c => c.high)),
+            low: Math.min(...data.slice(-20).map(c => c.low)),
+            data: []
+          };
+        }
+      } catch (e) {
+        console.warn(`Price fetch failed for ${sym}:`, e.message);
+      }
     }
   },
 
@@ -948,6 +1048,8 @@ const DataFetcher = {
   },
 
   async fetchNews(query='Iran war oil markets') {
+    // News doesn't have a CORS proxy path — just return empty
+    if (!HAS_BACKEND) return [];
     try {
       const url = `${API_BASE}/api/news?q=${encodeURIComponent(query)}`;
       const res = await fetch(url);
@@ -958,6 +1060,14 @@ const DataFetcher = {
     }
   }
 };
+
+// Probe for backend on load
+(async () => {
+  try {
+    const res = await fetch(`${API_BASE}/api/prices`, { signal: AbortSignal.timeout(2000) });
+    if (res.ok) { HAS_BACKEND = true; console.log('Backend server detected'); }
+  } catch (e) { console.log('No backend — using CORS proxy for live data'); }
+})();
 
 // ═══════════════════════════════════════════════════════════
 // TECHNICAL INDICATORS
@@ -1945,16 +2055,28 @@ const SAMPLE_PRICES = {
 // ═══════════════════════════════════════════════════════════
 async function fetchData() {
   try {
-    // Try backend server first
+    // Try backend server first, then CORS proxy
     state.candles = await DataFetcher.fetchYahoo(state.currentSymbol, '15m', '5d');
     await DataFetcher.fetchAllPrices();
     state.lastUpdate = new Date();
     updateChart(state.candles);
     updateUI();
-    document.getElementById('statusDot').style.background = 'var(--green)';
-    document.getElementById('statusText').textContent = 'Live';
+    
+    // Update status based on data source
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    if (DataFetcher.dataSource === 'backend') {
+      dot.style.background = 'var(--green)';
+      txt.textContent = 'Live (Server)';
+    } else if (DataFetcher.dataSource === 'proxy') {
+      dot.style.background = 'var(--green)';
+      txt.textContent = 'Live (Proxy)';
+    } else {
+      dot.style.background = 'var(--yellow)';
+      txt.textContent = 'Sample Data';
+    }
   } catch(e) {
-    console.warn('Backend server not available, using sample data:', e.message);
+    console.warn('All data sources failed, using sample data:', e.message);
     // Fallback to sample data
     state.candles = generateSampleData(SAMPLE_PRICES[state.currentSymbol] || 5650);
     for (const [sym, base] of Object.entries(SAMPLE_PRICES)) {
@@ -1970,7 +2092,7 @@ async function fetchData() {
     updateChart(state.candles);
     updateUI();
     document.getElementById('statusDot').style.background = 'var(--yellow)';
-    document.getElementById('statusText').textContent = 'Sample Data - Run server.py for live data';
+    document.getElementById('statusText').textContent = 'Sample Data - Start server.py for live data';
   }
 }
 
@@ -3270,14 +3392,11 @@ const BacktestEngine = {
     try {
       const params = this.getParams();
       
-      // Fetch historical candles
+      // Fetch historical candles via DataFetcher (backend → proxy → sample)
       const symbolName = CONFIG.symbols[params.symbol]?.name || 'ES';
-      status.textContent = `Fetching ${params.symbol} ${params.timeframe} ${params.range}...`;
+      status.textContent = `Fetching ${symbolName} ${params.timeframe} ${params.range}...`;
       
-      const url = `/api/candles?symbol=${encodeURIComponent(params.symbol)}&interval=${params.timeframe}&range=${params.range}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const data = await res.json();
+      const data = await DataFetcher.fetchYahoo(params.symbol, params.timeframe, params.range);
       
       if (!data || data.length === 0) {
         status.textContent = 'No data returned. Try a shorter range (5d or 1mo work best).';
