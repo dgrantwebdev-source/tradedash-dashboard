@@ -1206,7 +1206,7 @@ let state = {
 // DATA FETCHING - 4-Tier: Backend → Static JSON → CORS Proxy → Sample Data
 // ═══════════════════════════════════════════════════════════
 const API_BASE = window.location.origin;
-const DATA_BASE = API_BASE + '/data'; // GitHub Action writes JSON here
+const DATA_BASE = './data'; // Relative path — works from any deployment URL
 
 // Detect if we have a local backend server
 let HAS_BACKEND = false;
@@ -2036,8 +2036,8 @@ function initChart() {
   chart = LightweightCharts.createChart(container, {
     width: container.clientWidth,
     height: 500,
-    layout: { background: { color: '#111128' }, textColor: '#e0e0ff' },
-    grid: { vertLines: { color: '#1a1a3e' }, horzLines: { color: '#1a1a3e' } },
+    layout: { background: { color: '#0d0d12' }, textColor: '#c8c8d8' },
+    grid: { vertLines: { color: '#1c1c28' }, horzLines: { color: '#1c1c28' } },
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
     timeScale: { timeVisible: true, secondsVisible: false }
   });
