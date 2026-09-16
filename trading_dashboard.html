@@ -226,6 +226,7 @@ td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.04)}
 .mb-16{margin-bottom:16px}
 .text-sm{font-size:0.82em}
 .text-xs{font-size:0.72em;color:var(--text-dim)}
+.font-bold{font-weight:700}
 .hidden{display:none}
 
 /* ═══════════════════════════════════════════════════════════
@@ -2134,7 +2135,7 @@ function updatePreSignals(alerts) {
 
 function updateSignals() {
   const panel = document.getElementById('signals-panel');
-  if (!state.candles.length) { panel.innerHTML = '<div class="text-sm">Waiting for data...</div>'; return; }
+  if (!state.candles || !state.candles.length) { panel.innerHTML = '<div class="text-sm">Waiting for data...</div>'; return; }
   
   const closes = state.candles.map(c => c.close);
   const vix = state.prices['CL=F'] ? Math.abs(state.prices['CL=F'].change) * 5 + 15 : 25;
@@ -2453,7 +2454,7 @@ const SAMPLE_PRICES = {
 async function fetchData() {
   try {
     // Try backend server first, then CORS proxy
-    state.candles = await DataFetcher.fetchYahoo(state.currentSymbol, '15m', '5d');
+    state.candles = await DataFetcher.fetchYahoo(state.currentSymbol, '15m', '5d') || [];
     await DataFetcher.fetchAllPrices();
     state.lastUpdate = new Date();
     updateChart(state.candles);
@@ -4762,68 +4763,84 @@ setInterval(() => {
 }, 15000);
 
 // ═══════════════════════════════════════════════════════════
-// MUSIC PLAYER — Boom Bap Lounge
+// MUSIC PLAYER — Boom Bap Lounge (YouTube IFrame API)
 // ═══════════════════════════════════════════════════════════
 const BoomBapPlayer = {
+  // Real YouTube boom bap / lofi hip hop mixes (publicly available)
   tracks: [
-    { name: 'Late Night Lo-Fi', artist: 'Chillhop Radio', duration: '4:32', url: 'https://cdn.pixabay.com/audio/2024/11/29/audio_d5470ad553.mp3' },
-    { name: 'Trading Floor Jazz', artist: 'Jazz Hop Cafe', duration: '3:58', url: 'https://cdn.pixabay.com/audio/2024/10/28/audio_88e9b1d56b.mp3' },
-    { name: 'Midnight Session', artist: 'Lofi Records', duration: '5:11', url: 'https://cdn.pixabay.com/audio/2024/09/19/audio_7b5ea5b5a1.mp3' },
-    { name: 'Boom Bap Essential', artist: 'The Find Mag', duration: '4:15', url: 'https://cdn.pixabay.com/audio/2024/08/06/audio_93cae5e3e6.mp3' },
-    { name: 'Market Close Vibes', artist: 'Chill Beats', duration: '4:47', url: 'https://cdn.pixabay.com/audio/2024/07/22/audio_3f0a6c0a6a.mp3' },
-    { name: 'Open Interest Flow', artist: 'Beat Machine', duration: '3:42', url: 'https://cdn.pixabay.com/audio/2024/06/15/audio_a2d6f5b5e6.mp3' },
-    { name: 'Scalper\'s Serenade', artist: 'Lo-Fi Production', duration: '5:03', url: 'https://cdn.pixabay.com/audio/2024/05/10/audio_d3c4b5a6f7.mp3' },
-    { name: 'After Hours Trading', artist: 'Boom Bap Studios', duration: '4:28', url: 'https://cdn.pixabay.com/audio/2024/04/18/audio_b7e8c9d0f1.mp3' },
+    { name: 'Lofi Hip Hop Radio - Beats to Relax/Study', artist: 'Lofi Girl', duration: 'LIVE', ytId: 'jfKfPfyJRdk' },
+    { name: 'Boom Bap Sessions Vol. 1', artist: 'Chillhop Music', duration: '1:02:47', ytId: '5qap5aO4i9A' },
+    { name: 'Jazz Vibes - Chill Boom Bap Mix', artist: 'The Jazz Hop Café', duration: '58:32', ytId: 'HU7K0b98hUg' },
+    { name: '90s Boom Bap Instrumentals', artist: 'Mr. Fantastic', duration: '1:15:03', ytId: 'gKrbzN-3mQE' },
+    { name: 'Midnight Lo-Fi Beats', artist: 'Chill Cow', duration: '3:44:11', ytId: '4xDzrJKXOOY' },
+    { name: 'Late Night Trading Vibes', artist: 'J Dilla Style Beats', duration: '45:18', ytId: 'PiqAbVpThRo' },
+    { name: 'East Coast Boom Bap Classics', artist: 'Golden Era Hip Hop', duration: '1:30:22', ytId: 'n1WpP7iowLc' },
+    { name: 'Piano Jazz & Boom Bap', artist: 'Steezy AF', duration: '52:45', ytId: 'WqFG6ncxK5k' },
   ],
   current: 0,
-  audio: null,
+  player: null,
   playing: false,
   progressInterval: null,
+  ready: false,
 
   init() {
-    this.audio = new Audio();
-    this.audio.volume = 0.4;
-    this.audio.crossOrigin = 'anonymous';
-    this.audio.addEventListener('ended', () => this.next());
-    this.audio.addEventListener('error', () => {
-      console.warn('Track failed to load, skipping...');
-      setTimeout(() => this.next(), 500);
-    });
+    // Load YouTube IFrame API
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+    window.onYouTubeIframeAPIReady = () => {
+      this.player = new YT.Player('yt-player', {
+        height: '0', width: '0',
+        videoId: this.tracks[0].ytId,
+        playerVars: { autoplay: 0, controls: 0, disablekb: 1 },
+        events: {
+          onReady: () => { this.ready = true; },
+          onStateChange: (e) => this._onStateChange(e)
+        }
+      });
+    };
     this.renderTracklist();
-    this.loadTrack(0);
+    this._bindEvents();
+  },
+
+  _onStateChange(e) {
+    if (e.data === YT.PlayerState.PLAYING) {
+      this.playing = true;
+      document.getElementById('mp-play-btn').textContent = '⏸';
+      this.startProgress();
+    } else if (e.data === YT.PlayerState.PAUSED) {
+      this.playing = false;
+      document.getElementById('mp-play-btn').textContent = '▶';
+      this.stopProgress();
+    } else if (e.data === YT.PlayerState.ENDED) {
+      this.next();
+    }
   },
 
   loadTrack(index) {
     this.current = index;
     const track = this.tracks[index];
-    this.audio.src = track.url;
     document.getElementById('mp-title').textContent = track.name;
     document.getElementById('mp-artist').textContent = track.artist;
-    document.getElementById('mp-current-time').textContent = '0:00';
     document.getElementById('mp-duration').textContent = track.duration;
+    document.getElementById('mp-current-time').textContent = '0:00';
     document.getElementById('mp-progress-fill').style.width = '0%';
-    // Update active track in list
+    if (this.ready && this.player.loadVideoById) {
+      this.player.loadVideoById(track.ytId);
+    }
     document.querySelectorAll('.mp-track').forEach((el, i) => {
       el.classList.toggle('active', i === index);
     });
   },
 
   play() {
-    this.audio.play().then(() => {
-      this.playing = true;
-      document.getElementById('mp-play-btn').textContent = '⏸';
-      this.startProgress();
-    }).catch(e => {
-      console.warn('Play blocked:', e.message);
-      // Autoplay blocked — need user interaction
-    });
+    if (!this.ready) return;
+    this.player.playVideo();
   },
 
   pause() {
-    this.audio.pause();
-    this.playing = false;
-    document.getElementById('mp-play-btn').textContent = '▶';
-    this.stopProgress();
+    if (!this.ready) return;
+    this.player.pauseVideo();
   },
 
   toggle() {
@@ -4833,36 +4850,37 @@ const BoomBapPlayer = {
 
   next() {
     this.loadTrack((this.current + 1) % this.tracks.length);
-    if (this.playing) this.play();
   },
 
   prev() {
     this.loadTrack((this.current - 1 + this.tracks.length) % this.tracks.length);
-    if (this.playing) this.play();
   },
 
   seek(e) {
+    if (!this.ready) return;
     const bar = document.getElementById('mp-bar');
     const rect = bar.getBoundingClientRect();
     const pct = (e.clientX - rect.left) / rect.width;
-    if (this.audio.duration) {
-      this.audio.currentTime = pct * this.audio.duration;
-    }
+    const dur = this.player.getDuration();
+    if (dur) this.player.seekTo(pct * dur, true);
   },
 
   setVolume(val) {
-    this.audio.volume = val;
+    if (this.ready) this.player.setVolume(val * 100);
   },
 
   startProgress() {
     this.stopProgress();
     this.progressInterval = setInterval(() => {
-      if (this.audio.duration) {
-        const pct = (this.audio.currentTime / this.audio.duration) * 100;
-        document.getElementById('mp-progress-fill').style.width = pct + '%';
-        document.getElementById('mp-current-time').textContent = this.formatTime(this.audio.currentTime);
+      if (this.ready && this.player.getDuration) {
+        const cur = this.player.getCurrentTime();
+        const dur = this.player.getDuration();
+        if (dur > 0) {
+          document.getElementById('mp-progress-fill').style.width = ((cur / dur) * 100) + '%';
+          document.getElementById('mp-current-time').textContent = this.formatTime(cur);
+        }
       }
-    }, 250);
+    }, 500);
   },
 
   stopProgress() {
@@ -4877,6 +4895,11 @@ const BoomBapPlayer = {
 
   toggleList() {
     document.getElementById('mp-tracklist').classList.toggle('open');
+  },
+
+  _bindEvents() {
+    // volume on load
+    setTimeout(() => this.setVolume(0.4), 1000);
   },
 
   renderTracklist() {
@@ -4899,5 +4922,7 @@ document.addEventListener('DOMContentLoaded', () => {
   BoomBapPlayer.init();
 });
 </script>
+<!-- Hidden YouTube player -->
+<div id="yt-player" style="position:fixed;top:-999px;left:-999px;width:0;height:0;opacity:0"></div>
 </body>
 </html>
