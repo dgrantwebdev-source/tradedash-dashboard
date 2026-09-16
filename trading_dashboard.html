@@ -6,90 +6,350 @@
 <title>TradeDash Pro - 2026 Geopolitical Trading Dashboard</title>
 <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
 <style>
-:root{--bg:#0a0a1a;--bg2:#111128;--bg3:#1a1a3e;--border:#2a2a5a;--text:#e0e0ff;--text2:#8888aa;--green:#00d4aa;--red:#ff4466;--yellow:#ffd700;--blue:#4488ff;--purple:#aa66ff;--orange:#ff8800}
+/* ═══════════════════════════════════════════════════════════
+   ADULT SWIM THEME — Late Night Trading vibes
+   ═══════════════════════════════════════════════════════════ */
+:root{
+  --bg:#0d0d12;
+  --bg2:#14141c;
+  --bg3:#1c1c28;
+  --bg4:#22222e;
+  --border:#2a2a3a;
+  --border-glow:#3a3a5a;
+  --text:#c8c8d8;
+  --text2:#7a7a90;
+  --text-dim:#55556a;
+  --green:#00d4aa;
+  --green-glow:rgba(0,212,170,0.15);
+  --red:#ff4466;
+  --red-glow:rgba(255,68,102,0.15);
+  --yellow:#ffd700;
+  --blue:#4488ff;
+  --purple:#aa66ff;
+  --orange:#ff8800;
+  --teal:#00bfa5;
+  --cyan:#4dd0e1;
+  --accent:#1affcd;
+  --swim-dark:#0a0e14;
+  --swim-panel:rgba(20,20,28,0.92);
+  --swim-glow:0 0 20px rgba(0,191,165,0.08);
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-.header h1{font-size:1.4em;background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.header-info{display:flex;gap:20px;font-size:0.85em;color:var(--text2)}
+body{
+  font-family:'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+/* Scanline overlay for retro CRT feel */
+body::after{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+  pointer-events:none;z-index:9999;
+}
+/* ═══ HEADER ═══ */
+.header{
+  background:linear-gradient(180deg,var(--bg2) 0%,var(--bg) 100%);
+  border-bottom:1px solid var(--border);
+  padding:14px 24px;
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:10px;
+  position:relative;
+}
+.header::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--teal),transparent);
+  opacity:0.4;
+}
+.header h1{
+  font-size:1.3em;font-weight:700;letter-spacing:1px;
+  color:var(--text);
+  display:flex;align-items:center;gap:10px;
+}
+.header h1 .swim-logo{
+  font-family:'Courier New',monospace;font-weight:400;font-size:0.7em;
+  color:var(--teal);opacity:0.6;letter-spacing:3px;
+  text-transform:uppercase;
+}
+.header-info{display:flex;gap:20px;font-size:0.82em;color:var(--text2);align-items:center}
 .header-info span{display:flex;align-items:center;gap:5px}
-.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
-.nav{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;gap:0;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite;box-shadow:0 0 6px var(--green)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.85)}}
+
+/* ═══ NAV ═══ */
+.nav{
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;gap:0;overflow-x:auto;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
 .nav::-webkit-scrollbar{display:none}
-.nav button{background:none;border:none;color:var(--text2);padding:12px 16px;cursor:pointer;font-size:0.85em;border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0;transition:all 0.2s}
-.nav button:hover{color:var(--text);background:var(--bg3)}
-.nav button.active{color:var(--green);border-bottom-color:var(--green)}
-.tab{display:none;padding:16px;min-height:calc(100vh - 110px)}
-.tab.active{display:block}
+.nav button{
+  background:none;border:none;color:var(--text2);
+  padding:12px 18px;cursor:pointer;font-size:0.82em;
+  border-bottom:2px solid transparent;
+  white-space:nowrap;flex-shrink:0;
+  transition:all 0.25s ease;
+  letter-spacing:0.3px;
+  position:relative;
+}
+.nav button:hover{color:var(--text);background:rgba(255,255,255,0.02)}
+.nav button.active{
+  color:var(--teal);
+  border-bottom-color:var(--teal);
+}
+.nav button.active::after{
+  content:'';position:absolute;bottom:-1px;left:20%;right:20%;height:2px;
+  background:var(--teal);filter:blur(3px);opacity:0.5;
+}
+
+/* ═══ TABS ═══ */
+.tab{display:none;padding:16px 20px;min-height:calc(100vh - 110px)}
+.tab.active{display:block;animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══ GRID ═══ */
 .grid{display:grid;gap:16px}
 .grid-2{grid-template-columns:repeat(2,1fr)}
 .grid-3{grid-template-columns:repeat(3,1fr)}
 .grid-4{grid-template-columns:repeat(4,1fr)}
 .grid-main{grid-template-columns:3fr 1fr}
 @media(max-width:1200px){.grid-2,.grid-3,.grid-4,.grid-main{grid-template-columns:1fr}}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px}
-.card h3{color:var(--text2);font-size:0.85em;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
-.stat-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+
+/* ═══ CARDS ═══ */
+.card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:18px;
+  transition:border-color 0.3s ease;
+  position:relative;
+  overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,191,165,0.2),transparent);
+}
+.card:hover{border-color:var(--border-glow)}
+.card h3{
+  color:var(--text2);font-size:0.78em;text-transform:uppercase;
+  letter-spacing:1.5px;margin-bottom:14px;font-weight:600;
+}
+
+/* ═══ STATS ═══ */
+.stat-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
 .stat-row:last-child{border-bottom:none}
-.stat-label{color:var(--text2);font-size:0.85em}
-.stat-value{font-weight:600}
+.stat-label{color:var(--text2);font-size:0.82em}
+.stat-value{font-weight:600;font-variant-numeric:tabular-nums}
 .stat-value.positive{color:var(--green)}
 .stat-value.negative{color:var(--red)}
 .stat-value.neutral{color:var(--yellow)}
+
+/* ═══ CHART ═══ */
 #chart-container{height:500px;position:relative}
 #volume-container{height:100px}
-.signal-badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:0.8em;font-weight:600}
-.signal-badge.long{background:rgba(0,212,170,0.2);color:var(--green);border:1px solid var(--green)}
-.signal-badge.short{background:rgba(255,68,102,0.2);color:var(--red);border:1px solid var(--red)}
-.signal-badge.wait{background:rgba(255,215,0,0.2);color:var(--yellow);border:1px solid var(--yellow)}
-.trade-card{background:var(--bg3);border-radius:6px;padding:12px;margin-bottom:8px;border-left:3px solid var(--border)}
+
+/* ═══ SIGNALS ═══ */
+.signal-badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:0.78em;font-weight:600;letter-spacing:0.5px}
+.signal-badge.long{background:var(--green-glow);color:var(--green);border:1px solid var(--green)}
+.signal-badge.short{background:var(--red-glow);color:var(--red);border:1px solid var(--red)}
+.signal-badge.wait{background:rgba(255,215,0,0.15);color:var(--yellow);border:1px solid var(--yellow)}
+
+/* ═══ TRADE CARDS ═══ */
+.trade-card{
+  background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:8px;
+  border-left:3px solid var(--border);
+  transition:all 0.2s ease;
+}
+.trade-card:hover{background:var(--bg4)}
 .trade-card.winning{border-left-color:var(--green)}
 .trade-card.losing{border-left-color:var(--red)}
 .trade-card.open{border-left-color:var(--blue)}
-.regime-indicator{padding:8px 16px;border-radius:6px;font-weight:600;text-align:center;margin-bottom:12px}
-.regime-high{background:rgba(255,68,102,0.2);border:1px solid var(--red);color:var(--red)}
-.regime-normal{background:rgba(255,215,0,0.2);border:1px solid var(--yellow);color:var(--yellow)}
-.regime-low{background:rgba(0,212,170,0.2);border:1px solid var(--green);color:var(--green)}
-.progress-bar{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-top:6px}
-.progress-fill{height:100%;border-radius:4px;transition:width 0.3s}
-.btn{padding:8px 16px;border:1px solid var(--border);border-radius:4px;background:var(--bg3);color:var(--text);cursor:pointer;font-size:0.85em;transition:all 0.2s}
-.btn:hover{background:var(--border)}
-.btn.primary{background:var(--green);color:#000;border-color:var(--green)}
+
+/* ═══ REGIME ═══ */
+.regime-indicator{padding:10px 16px;border-radius:8px;font-weight:600;text-align:center;margin-bottom:12px;font-size:0.9em;letter-spacing:0.5px}
+.regime-high{background:var(--red-glow);border:1px solid rgba(255,68,102,0.4);color:var(--red)}
+.regime-normal{background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.3);color:var(--yellow)}
+.regime-low{background:var(--green-glow);border:1px solid rgba(0,212,170,0.3);color:var(--green)}
+
+/* ═══ PROGRESS ═══ */
+.progress-bar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.3s ease}
+
+/* ═══ BUTTONS ═══ */
+.btn{
+  padding:8px 16px;border:1px solid var(--border);border-radius:6px;
+  background:var(--bg3);color:var(--text);cursor:pointer;
+  font-size:0.82em;transition:all 0.2s ease;
+  letter-spacing:0.3px;
+}
+.btn:hover{background:var(--bg4);border-color:var(--border-glow)}
+.btn.primary{background:var(--teal);color:#000;border-color:var(--teal);font-weight:600}
 .btn.danger{background:var(--red);color:#fff;border-color:var(--red)}
-.news-item{padding:10px;border-bottom:1px solid var(--border);font-size:0.85em}
+
+/* ═══ NEWS ═══ */
+.news-item{padding:10px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.82em;transition:background 0.2s}
+.news-item:hover{background:rgba(255,255,255,0.02)}
 .news-item:last-child{border-bottom:none}
-.news-time{color:var(--text2);font-size:0.75em}
-.news-sentiment{font-size:0.75em;padding:2px 6px;border-radius:3px;margin-left:8px}
-.news-sentiment.pos{background:rgba(0,212,170,0.2);color:var(--green)}
-.news-sentiment.neg{background:rgba(255,68,102,0.2);color:var(--red)}
-.news-sentiment.neu{background:rgba(136,136,170,0.2);color:var(--text2)}
+.news-time{color:var(--text-dim);font-size:0.72em}
+.news-sentiment{font-size:0.72em;padding:2px 6px;border-radius:3px;margin-left:8px}
+.news-sentiment.pos{background:var(--green-glow);color:var(--green)}
+.news-sentiment.neg{background:var(--red-glow);color:var(--red)}
+.news-sentiment.neu{background:rgba(136,136,170,0.15);color:var(--text2)}
+
+/* ═══ COMPLIANCE ═══ */
 .compliance-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-.compliance-item{font-size:0.8em;padding:6px 12px;border-radius:4px;background:var(--bg);border:1px solid var(--border)}
-.compliance-item.ok{border-color:var(--green);color:var(--green)}
-.compliance-item.warn{border-color:var(--yellow);color:var(--yellow)}
-.compliance-item.danger{border-color:var(--red);color:var(--red)}
-table{width:100%;border-collapse:collapse;font-size:0.85em}
-th{background:var(--bg3);padding:8px;text-align:left;color:var(--text2);font-weight:600;border-bottom:1px solid var(--border)}
-td{padding:8px;border-bottom:1px solid var(--border)}
-.loading{text-align:center;padding:40px;color:var(--text2)}
+.compliance-item{font-size:0.78em;padding:6px 12px;border-radius:6px;background:var(--bg);border:1px solid var(--border)}
+.compliance-item.ok{border-color:rgba(0,212,170,0.4);color:var(--green)}
+.compliance-item.warn{border-color:rgba(255,215,0,0.4);color:var(--yellow)}
+.compliance-item.danger{border-color:rgba(255,68,102,0.4);color:var(--red)}
+
+/* ═══ TABLE ═══ */
+table{width:100%;border-collapse:collapse;font-size:0.82em}
+th{background:var(--bg3);padding:10px;text-align:left;color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);letter-spacing:0.5px;font-size:0.9em}
+td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.04)}
+
+/* ═══ LOADING ═══ */
+.loading{text-align:center;padding:40px;color:var(--text2);font-size:0.85em}
+
+/* ═══ ALERTS ═══ */
 .alert-banner{padding:12px 20px;text-align:center;font-weight:600;animation:flash 0.5s}
-.alert-banner.warning{background:rgba(255,136,0,0.2);border:1px solid var(--orange);color:var(--orange)}
-.alert-banner.danger{background:rgba(255,68,102,0.2);border:1px solid var(--red);color:var(--red)}
-.alert-banner.success{background:rgba(0,212,170,0.2);border:1px solid var(--green);color:var(--green)}
+.alert-banner.warning{background:rgba(255,136,0,0.15);border:1px solid rgba(255,136,0,0.4);color:var(--orange)}
+.alert-banner.danger{background:var(--red-glow);border:1px solid rgba(255,68,102,0.4);color:var(--red)}
+.alert-banner.success{background:var(--green-glow);border:1px solid rgba(0,212,170,0.4);color:var(--green)}
 @keyframes flash{0%,100%{opacity:1}50%{opacity:0.7}}
+
+/* ═══ UTILITIES ═══ */
 .flex-between{display:flex;justify-content:space-between;align-items:center}
 .mt-16{margin-top:16px}
 .mb-16{margin-bottom:16px}
-.text-sm{font-size:0.85em}
-.text-xs{font-size:0.75em}
+.text-sm{font-size:0.82em}
+.text-xs{font-size:0.72em;color:var(--text-dim)}
 .hidden{display:none}
+
+/* ═══════════════════════════════════════════════════════════
+   MUSIC PLAYER — Boom Bap Lounge
+   ═══════════════════════════════════════════════════════════ */
+.music-player{
+  position:fixed;bottom:0;left:0;right:0;
+  background:linear-gradient(180deg,rgba(13,13,18,0.95),rgba(10,10,14,0.98));
+  backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  padding:10px 20px;
+  z-index:1000;
+  display:flex;align-items:center;gap:16px;
+  transition:transform 0.3s ease;
+}
+.music-player.collapsed{transform:translateY(calc(100% - 3px))}
+.music-player.collapsed:hover{transform:translateY(calc(100% - 40px))}
+.music-player .toggle-btn{
+  position:absolute;top:-28px;left:50%;transform:translateX(-50%);
+  background:var(--bg2);border:1px solid var(--border);border-bottom:none;
+  border-radius:8px 8px 0 0;padding:4px 16px;
+  color:var(--text2);cursor:pointer;font-size:0.7em;
+  letter-spacing:2px;
+}
+.music-player .toggle-btn:hover{color:var(--teal)}
+.mp-art{
+  width:44px;height:44px;border-radius:6px;
+  background:linear-gradient(135deg,var(--bg3),var(--bg4));
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3em;flex-shrink:0;
+  border:1px solid var(--border);
+}
+.mp-info{flex:0 0 auto;min-width:180px}
+.mp-title{font-size:0.82em;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-artist{font-size:0.7em;color:var(--text2);white-space:nowrap}
+.mp-controls{display:flex;align-items:center;gap:12px}
+.mp-controls button{
+  background:none;border:none;color:var(--text2);
+  cursor:pointer;font-size:1.1em;padding:4px;
+  transition:all 0.2s;
+}
+.mp-controls button:hover{color:var(--teal)}
+.mp-controls .play-btn{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--teal);color:#000;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.9em;
+}
+.mp-controls .play-btn:hover{background:var(--accent);transform:scale(1.05)}
+.mp-progress{flex:1;display:flex;align-items:center;gap:8px}
+.mp-bar{flex:1;height:4px;background:var(--bg4);border-radius:2px;cursor:pointer;position:relative}
+.mp-bar-fill{height:100%;background:var(--teal);border-radius:2px;transition:width 0.1s}
+.mp-time{font-size:0.65em;color:var(--text-dim);font-variant-numeric:tabular-nums;min-width:36px}
+.mp-volume{display:flex;align-items:center;gap:6px}
+.mp-volume input[type=range]{
+  width:70px;height:3px;-webkit-appearance:none;appearance:none;
+  background:var(--bg4);border-radius:2px;outline:none;
+}
+.mp-volume input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:10px;height:10px;border-radius:50%;
+  background:var(--teal);cursor:pointer;
+}
+.mp-list-toggle{
+  background:none;border:1px solid var(--border);border-radius:4px;
+  color:var(--text2);padding:4px 8px;cursor:pointer;font-size:0.7em;
+  letter-spacing:1px;transition:all 0.2s;
+}
+.mp-list-toggle:hover{color:var(--teal);border-color:var(--teal)}
+/* Track list dropdown */
+.mp-tracklist{
+  position:absolute;bottom:100%;left:0;right:0;
+  background:var(--bg2);border-top:1px solid var(--border);
+  max-height:250px;overflow-y:auto;
+  display:none;
+}
+.mp-tracklist.open{display:block}
+.mp-track{
+  padding:8px 20px;display:flex;align-items:center;gap:12px;
+  cursor:pointer;transition:background 0.2s;
+  border-bottom:1px solid rgba(255,255,255,0.03);
+}
+.mp-track:hover{background:var(--bg3)}
+.mp-track.active{background:rgba(0,191,165,0.08)}
+.mp-track .track-num{color:var(--text-dim);font-size:0.72em;width:20px;text-align:right}
+.mp-track .track-info{flex:1}
+.mp-track .track-name{font-size:0.8em;color:var(--text)}
+.mp-track .track-dur{font-size:0.7em;color:var(--text-dim)}
+
+/* ═══ ADULT SWIM BUMP ═══ */
+.swim-bump{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:10000;pointer-events:none;
+  opacity:0;transition:opacity 0.5s ease;
+}
+.swim-bump.visible{opacity:1}
+.swim-bump-text{
+  font-family:'Courier New',monospace;
+  font-size:2em;color:var(--teal);
+  letter-spacing:8px;text-transform:uppercase;
+  text-shadow:0 0 30px rgba(0,191,165,0.4);
+}
+
+/* Bottom padding for music player */
+body{padding-bottom:60px}
+body.player-expanded{padding-bottom:80px}
+
+@media(max-width:768px){
+  .music-player{padding:8px 12px;gap:10px}
+  .mp-info{min-width:120px}
+  .mp-progress{display:none}
+  .mp-volume{display:none}
+  .header{padding:10px 14px}
+  .header h1{font-size:1.1em}
+  .nav button{padding:10px 12px;font-size:0.78em}
+}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>⚡ TradeDash Pro</h1>
+  <h1>
+    <span>⚡ TradeDash</span>
+    <span class="swim-logo">[adult swim]</span>
+  </h1>
   <div class="header-info">
     <span><span class="live-dot" id="statusDot"></span> <span id="statusText">Connecting...</span></span>
     <span>🕐 <span id="clock">--:--:--</span> ET</span>
@@ -868,6 +1128,44 @@ value="1.5" step="0.1" />
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MUSIC PLAYER — Boom Bap Lounge -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="music-player" id="musicPlayer">
+  <button class="toggle-btn" onclick="document.getElementById('musicPlayer').classList.toggle('collapsed')">♫ BOOM BAP</button>
+  
+  <!-- Track List Dropdown -->
+  <div class="mp-tracklist" id="mp-tracklist"></div>
+  
+  <div class="mp-art">🎵</div>
+  
+  <div class="mp-info">
+    <div class="mp-title" id="mp-title">Loading...</div>
+    <div class="mp-artist" id="mp-artist">--</div>
+  </div>
+  
+  <div class="mp-controls">
+    <button onclick="BoomBapPlayer.prev()" title="Previous">⏮</button>
+    <button class="play-btn" id="mp-play-btn" onclick="BoomBapPlayer.toggle()" title="Play/Pause">▶</button>
+    <button onclick="BoomBapPlayer.next()" title="Next">⏭</button>
+  </div>
+  
+  <div class="mp-progress">
+    <span class="mp-time" id="mp-current-time">0:00</span>
+    <div class="mp-bar" id="mp-bar" onclick="BoomBapPlayer.seek(event)">
+      <div class="mp-bar-fill" id="mp-progress-fill"></div>
+    </div>
+    <span class="mp-time" id="mp-duration">0:00</span>
+  </div>
+  
+  <div class="mp-volume">
+    <span style="font-size:0.8em">🔊</span>
+    <input type="range" min="0" max="1" step="0.05" value="0.4" oninput="BoomBapPlayer.setVolume(this.value)">
+  </div>
+  
+  <button class="mp-list-toggle" onclick="BoomBapPlayer.toggleList()">TRACKS</button>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -904,11 +1202,10 @@ let state = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// DATA FETCHING - 3-Tier: Backend → CORS Proxy → Sample Data
+// DATA FETCHING - 4-Tier: Backend → Static JSON → CORS Proxy → Sample Data
 // ═══════════════════════════════════════════════════════════
 const API_BASE = window.location.origin;
-// CORS proxy: allorigins /get wraps response with proper CORS headers
-const CORS_PROXY = 'https://api.allorigins.win/get?url=';
+const DATA_BASE = API_BASE + '/data'; // GitHub Action writes JSON here
 
 // Detect if we have a local backend server
 let HAS_BACKEND = false;
@@ -929,7 +1226,7 @@ function cacheSet(key, data) {
 }
 
 const DataFetcher = {
-  dataSource: 'unknown', // 'backend', 'proxy', or 'sample'
+  dataSource: 'unknown', // 'backend', 'static', 'proxy', or 'sample'
 
   // Parse Yahoo Finance chart response into our candle format
   _parseYahooResponse(raw) {
@@ -972,7 +1269,12 @@ const DataFetcher = {
     return { symbol, interval, range };
   },
 
-  // Try backend server first (local dev)
+  // Build static JSON filename from params
+  _staticFileName(symbol, interval, range) {
+    return `${symbol.replace('=', '_')}_${interval}_${range}.json`;
+  },
+
+  // Tier 1: Try backend server (local dev)
   async _fetchFromBackend(symbol, interval, range) {
     if (!HAS_BACKEND) throw new Error('No backend');
     const url = `${API_BASE}/api/candles?symbol=${encodeURIComponent(symbol)}&interval=${interval}&range=${range}`;
@@ -981,15 +1283,36 @@ const DataFetcher = {
     return await res.json();
   },
 
-  // Try CORS proxy → Yahoo Finance (for GitHub Pages)
-  async _fetchViaProxy(symbol, interval, range) {
-    const cacheKey = `candles_${symbol}_${interval}_${range}`;
+  // Tier 2: Try static JSON files (GitHub Action updated)
+  async _fetchFromStatic(symbol, interval, range) {
+    const cacheKey = `static_${symbol}_${interval}_${range}`;
     const cached = cacheGet(cacheKey);
-    if (cached) { this.dataSource = 'proxy'; return cached; }
+    if (cached) return cached;
+
+    const fileName = this._staticFileName(symbol, interval, range);
+    try {
+      const res = await fetch(`${DATA_BASE}/${fileName}`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) throw new Error(`Static ${res.status}`);
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        cacheSet(cacheKey, data);
+        return data;
+      }
+      throw new Error('Empty static data');
+    } catch (e) {
+      throw e;
+    }
+  },
+
+  // Tier 3: Try CORS proxy → Yahoo Finance (best-effort, unreliable)
+  async _fetchViaProxy(symbol, interval, range) {
+    const cacheKey = `proxy_${symbol}_${interval}_${range}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
 
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
     try {
-      const res = await fetch(CORS_PROXY + encodeURIComponent(yahooUrl), { signal: AbortSignal.timeout(12000) });
+      const res = await fetch(`https://api.allorigins.win/get?url=` + encodeURIComponent(yahooUrl), { signal: AbortSignal.timeout(10000) });
       if (!res.ok) throw new Error(`Proxy ${res.status}`);
       const json = await res.json();
       const candles = this._parseYahooResponse(json);
@@ -999,12 +1322,11 @@ const DataFetcher = {
       }
       throw new Error('No candles in response');
     } catch (e) {
-      console.warn(`Proxy failed for ${symbol}:`, e.message);
       throw e;
     }
   },
 
-  // Main fetch method — tries backend, then proxy, returns null if both fail
+  // Main fetch method — tries all tiers in order
   async fetchYahoo(symbol, interval='15m', range='5d') {
     ({ symbol, interval, range } = this._normalizeParams(symbol, interval, range));
     // Tier 1: Backend server
@@ -1013,19 +1335,25 @@ const DataFetcher = {
       this.dataSource = 'backend';
       return data;
     } catch (e) { /* fall through */ }
-    // Tier 2: CORS proxy (with caching)
+    // Tier 2: Static JSON files
+    try {
+      const data = await this._fetchFromStatic(symbol, interval, range);
+      this.dataSource = 'static';
+      return data;
+    } catch (e) { /* fall through */ }
+    // Tier 3: CORS proxy (best-effort)
     try {
       const data = await this._fetchViaProxy(symbol, interval, range);
       this.dataSource = 'proxy';
       return data;
     } catch (e) { /* fall through */ }
-    // Tier 3: Null — caller decides what to do
+    // Tier 4: Null — caller decides what to do
     this.dataSource = 'sample';
     return null;
   },
 
   async fetchAllPrices() {
-    // Try backend first (fast, reliable)
+    // Tier 1: Backend
     if (HAS_BACKEND) {
       try {
         const url = `${API_BASE}/api/prices`;
@@ -1033,26 +1361,25 @@ const DataFetcher = {
         if (res.ok) {
           const prices = await res.json();
           for (const [sym, data] of Object.entries(prices)) {
-            state.prices[sym] = {
-              price: data.price, change: data.change,
-              high: data.high, low: data.low, data: []
-            };
+            state.prices[sym] = { price: data.price, change: data.change, high: data.high, low: data.low, data: [] };
           }
           return;
         }
       } catch (e) { /* fall through */ }
     }
-    // Check cache first
-    const cacheKey = 'prices_' + Object.keys(SAMPLE_PRICES).join(',');
-    const cached = cacheGet(cacheKey);
-    if (cached) {
-      for (const [sym, data] of Object.entries(cached)) {
-        state.prices[sym] = { ...data, data: [] };
+    // Tier 2: Static JSON
+    try {
+      const res = await fetch(`${DATA_BASE}/prices.json`, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const prices = await res.json();
+        for (const [sym, data] of Object.entries(prices)) {
+          state.prices[sym] = { ...data, data: [] };
+        }
+        this.dataSource = 'static';
+        return;
       }
-      this.dataSource = 'proxy';
-      return;
-    }
-    // Fetch ES only for prices (minimal proxy load), derive others from sample
+    } catch (e) { /* fall through */ }
+    // Tier 3: Fetch ES only via proxy, derive others
     try {
       const data = await this.fetchYahoo('ES=F', '5m', '1d');
       if (data && data.length > 1) {
@@ -1065,27 +1392,18 @@ const DataFetcher = {
           low: Math.min(...data.slice(-20).map(c => c.low)),
           data: []
         };
-        // Derive other prices from realistic ratios
         state.prices['NQ=F'] = { price: SAMPLE_PRICES['NQ=F'], change: (Math.random()-0.5).toFixed(2), high: SAMPLE_PRICES['NQ=F']*1.005, low: SAMPLE_PRICES['NQ=F']*0.995, data: [] };
         state.prices['CL=F'] = { price: SAMPLE_PRICES['CL=F'], change: (Math.random()-0.5).toFixed(2), high: SAMPLE_PRICES['CL=F']*1.005, low: SAMPLE_PRICES['CL=F']*0.995, data: [] };
         state.prices['GC=F'] = { price: SAMPLE_PRICES['GC=F'], change: (Math.random()-0.5).toFixed(2), high: SAMPLE_PRICES['GC=F']*1.005, low: SAMPLE_PRICES['GC=F']*0.995, data: [] };
-        cacheSet(cacheKey, {
-          'ES=F': state.prices['ES=F'],
-          'NQ=F': state.prices['NQ=F'],
-          'CL=F': state.prices['CL=F'],
-          'GC=F': state.prices['GC=F']
-        });
         return;
       }
     } catch (e) { /* fall through */ }
-    // All failed — use sample prices
+    // Tier 4: Sample prices
     for (const [sym, base] of Object.entries(SAMPLE_PRICES)) {
       state.prices[sym] = {
         price: base + (Math.random() - 0.5) * base * 0.01,
         change: ((Math.random() - 0.5) * 2).toFixed(2),
-        high: base * 1.005,
-        low: base * 0.995,
-        data: []
+        high: base * 1.005, low: base * 0.995, data: []
       };
     }
   },
@@ -1119,12 +1437,22 @@ const DataFetcher = {
   }
 };
 
-// Probe for backend on load
+// Probe for backend + static data on load
 (async () => {
   try {
     const res = await fetch(`${API_BASE}/api/prices`, { signal: AbortSignal.timeout(2000) });
-    if (res.ok) { HAS_BACKEND = true; console.log('Backend server detected'); }
-  } catch (e) { console.log('No backend — using CORS proxy for live data'); }
+    if (res.ok) { HAS_BACKEND = true; console.log('Backend server detected'); return; }
+  } catch (e) {}
+  try {
+    const res = await fetch(`${DATA_BASE}/meta.json`, { signal: AbortSignal.timeout(2000) });
+    if (res.ok) {
+      const meta = await res.json();
+      console.log('Static data available, updated: ' + meta.updated);
+      DataFetcher.dataSource = 'static';
+      return;
+    }
+  } catch (e) {}
+  console.log('No backend or static data — using sample data');
 })();
 
 // ═══════════════════════════════════════════════════════════
@@ -2137,8 +2465,11 @@ async function fetchData() {
     if (DataFetcher.dataSource === 'backend') {
       dot.style.background = 'var(--green)';
       txt.textContent = 'Live (Server)';
-    } else if (DataFetcher.dataSource === 'proxy') {
+    } else if (DataFetcher.dataSource === 'static') {
       dot.style.background = 'var(--green)';
+      txt.textContent = 'Live (Static)';
+    } else if (DataFetcher.dataSource === 'proxy') {
+      dot.style.background = 'var(--yellow)';
       txt.textContent = 'Live (Proxy)';
     } else {
       dot.style.background = 'var(--yellow)';
@@ -4429,6 +4760,144 @@ setInterval(() => {
   AutoTrader.checkTrailingStops();
   AutoTrader.checkTimeExits();
 }, 15000);
+
+// ═══════════════════════════════════════════════════════════
+// MUSIC PLAYER — Boom Bap Lounge
+// ═══════════════════════════════════════════════════════════
+const BoomBapPlayer = {
+  tracks: [
+    { name: 'Late Night Lo-Fi', artist: 'Chillhop Radio', duration: '4:32', url: 'https://cdn.pixabay.com/audio/2024/11/29/audio_d5470ad553.mp3' },
+    { name: 'Trading Floor Jazz', artist: 'Jazz Hop Cafe', duration: '3:58', url: 'https://cdn.pixabay.com/audio/2024/10/28/audio_88e9b1d56b.mp3' },
+    { name: 'Midnight Session', artist: 'Lofi Records', duration: '5:11', url: 'https://cdn.pixabay.com/audio/2024/09/19/audio_7b5ea5b5a1.mp3' },
+    { name: 'Boom Bap Essential', artist: 'The Find Mag', duration: '4:15', url: 'https://cdn.pixabay.com/audio/2024/08/06/audio_93cae5e3e6.mp3' },
+    { name: 'Market Close Vibes', artist: 'Chill Beats', duration: '4:47', url: 'https://cdn.pixabay.com/audio/2024/07/22/audio_3f0a6c0a6a.mp3' },
+    { name: 'Open Interest Flow', artist: 'Beat Machine', duration: '3:42', url: 'https://cdn.pixabay.com/audio/2024/06/15/audio_a2d6f5b5e6.mp3' },
+    { name: 'Scalper\'s Serenade', artist: 'Lo-Fi Production', duration: '5:03', url: 'https://cdn.pixabay.com/audio/2024/05/10/audio_d3c4b5a6f7.mp3' },
+    { name: 'After Hours Trading', artist: 'Boom Bap Studios', duration: '4:28', url: 'https://cdn.pixabay.com/audio/2024/04/18/audio_b7e8c9d0f1.mp3' },
+  ],
+  current: 0,
+  audio: null,
+  playing: false,
+  progressInterval: null,
+
+  init() {
+    this.audio = new Audio();
+    this.audio.volume = 0.4;
+    this.audio.crossOrigin = 'anonymous';
+    this.audio.addEventListener('ended', () => this.next());
+    this.audio.addEventListener('error', () => {
+      console.warn('Track failed to load, skipping...');
+      setTimeout(() => this.next(), 500);
+    });
+    this.renderTracklist();
+    this.loadTrack(0);
+  },
+
+  loadTrack(index) {
+    this.current = index;
+    const track = this.tracks[index];
+    this.audio.src = track.url;
+    document.getElementById('mp-title').textContent = track.name;
+    document.getElementById('mp-artist').textContent = track.artist;
+    document.getElementById('mp-current-time').textContent = '0:00';
+    document.getElementById('mp-duration').textContent = track.duration;
+    document.getElementById('mp-progress-fill').style.width = '0%';
+    // Update active track in list
+    document.querySelectorAll('.mp-track').forEach((el, i) => {
+      el.classList.toggle('active', i === index);
+    });
+  },
+
+  play() {
+    this.audio.play().then(() => {
+      this.playing = true;
+      document.getElementById('mp-play-btn').textContent = '⏸';
+      this.startProgress();
+    }).catch(e => {
+      console.warn('Play blocked:', e.message);
+      // Autoplay blocked — need user interaction
+    });
+  },
+
+  pause() {
+    this.audio.pause();
+    this.playing = false;
+    document.getElementById('mp-play-btn').textContent = '▶';
+    this.stopProgress();
+  },
+
+  toggle() {
+    if (this.playing) this.pause();
+    else this.play();
+  },
+
+  next() {
+    this.loadTrack((this.current + 1) % this.tracks.length);
+    if (this.playing) this.play();
+  },
+
+  prev() {
+    this.loadTrack((this.current - 1 + this.tracks.length) % this.tracks.length);
+    if (this.playing) this.play();
+  },
+
+  seek(e) {
+    const bar = document.getElementById('mp-bar');
+    const rect = bar.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    if (this.audio.duration) {
+      this.audio.currentTime = pct * this.audio.duration;
+    }
+  },
+
+  setVolume(val) {
+    this.audio.volume = val;
+  },
+
+  startProgress() {
+    this.stopProgress();
+    this.progressInterval = setInterval(() => {
+      if (this.audio.duration) {
+        const pct = (this.audio.currentTime / this.audio.duration) * 100;
+        document.getElementById('mp-progress-fill').style.width = pct + '%';
+        document.getElementById('mp-current-time').textContent = this.formatTime(this.audio.currentTime);
+      }
+    }, 250);
+  },
+
+  stopProgress() {
+    if (this.progressInterval) clearInterval(this.progressInterval);
+  },
+
+  formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  },
+
+  toggleList() {
+    document.getElementById('mp-tracklist').classList.toggle('open');
+  },
+
+  renderTracklist() {
+    const container = document.getElementById('mp-tracklist');
+    container.innerHTML = this.tracks.map((t, i) => `
+      <div class="mp-track${i === this.current ? ' active' : ''}" onclick="BoomBapPlayer.loadTrack(${i});BoomBapPlayer.play();">
+        <span class="track-num">${i + 1}</span>
+        <div class="track-info">
+          <div class="track-name">${t.name}</div>
+          <div class="track-dim">${t.artist}</div>
+        </div>
+        <span class="track-dur">${t.duration}</span>
+      </div>
+    `).join('');
+  }
+};
+
+// Initialize player on load
+document.addEventListener('DOMContentLoaded', () => {
+  BoomBapPlayer.init();
+});
 </script>
 </body>
 </html>
