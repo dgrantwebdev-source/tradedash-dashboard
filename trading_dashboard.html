@@ -1096,6 +1096,7 @@ const DataFetcher = {
     for (const tf of timeframes) {
       try {
         data[tf] = await this.fetchYahoo(symbol, tf, tf === '1d' ? '3mo' : '5d');
+        if (!data[tf]) data[tf] = [];
       } catch(e) {
         console.warn(`Multi-timeframe fetch failed for ${tf}:`, e);
         data[tf] = [];
@@ -1105,11 +1106,11 @@ const DataFetcher = {
   },
 
   async fetchNews(query='Iran war oil markets') {
-    // News doesn't have a CORS proxy path — just return empty
     if (!HAS_BACKEND) return [];
     try {
       const url = `${API_BASE}/api/news?q=${encodeURIComponent(query)}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return [];
       const data = await res.json();
       return data.articles || [];
     } catch(e) {
@@ -1706,7 +1707,7 @@ function initChart() {
 }
 
 function updateChart(candles) {
-  if (!candleSeries || !candles.length) return;
+  if (!candleSeries || !candles || !candles.length) return;
   const cleanCandles = candles.filter(c => c && c.time && c.open != null && c.high != null && c.low != null && c.close != null);
   candleSeries.setData(cleanCandles.map(c => ({ time: c.time, open: c.open, high: c.high, low: c.low, close: c.close })));
   volumeSeries.setData(cleanCandles.map(c => ({
@@ -2078,26 +2079,37 @@ function toggleAutoTrade() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SAMPLE DATA FALLBACK (when backend server is not running)
+// SAMPLE DATA FALLBACK (realistic futures candle generator)
 // ═══════════════════════════════════════════════════════════
 function generateSampleData(basePrice, count=100) {
   const data = [];
   let price = basePrice;
   const now = Math.floor(Date.now() / 1000);
-  for (let i = count; i > 0; i--) {
-    const time = now - (i * 900);
-    const change = (Math.random() - 0.5) * basePrice * 0.005;
+  // Start 30 min before market open for realism
+  const startTime = now - (count * 900) - 1800;
+  for (let i = 0; i < count; i++) {
+    const time = startTime + (i * 900);
+    // Mean-reverting random walk with volatility clusters
+    const vol = basePrice * (0.001 + Math.random() * 0.003);
+    const meanRevert = (basePrice - price) * 0.002;
+    const change = meanRevert + (Math.random() - 0.5) * vol;
     const open = price;
-    price += change;
-    const high = Math.max(open, price) + Math.random() * basePrice * 0.002;
-    const low = Math.min(open, price) - Math.random() * basePrice * 0.002;
+    price = Math.max(basePrice * 0.95, Math.min(basePrice * 1.05, price + change));
+    const candleRange = vol * (0.5 + Math.random());
+    const high = Math.max(open, price) + Math.random() * candleRange;
+    const low = Math.min(open, price) - Math.random() * candleRange;
+    // Volume higher at open/close, lower midday
+    const hour = new Date(time * 1000).getUTCHours();
+    let volMult = 1;
+    if (hour >= 13 && hour <= 16) volMult = 2.5; // NY open
+    else if (hour >= 20 || hour <= 1) volMult = 0.5; // midday
     data.push({
       time,
       open: parseFloat(open.toFixed(2)),
       high: parseFloat(high.toFixed(2)),
       low: parseFloat(low.toFixed(2)),
       close: parseFloat(price.toFixed(2)),
-      volume: Math.floor(Math.random() * 50000) + 10000
+      volume: Math.floor((Math.random() * 30000 + 5000) * volMult)
     });
   }
   return data;
