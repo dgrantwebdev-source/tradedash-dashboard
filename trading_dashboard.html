@@ -1614,16 +1614,18 @@ const Strategies = {
 
   // ORB Breakout
   orb(candles) {
-    if (candles.length < 3) return { signal: null, reason: 'Insufficient data' };
+    if (candles.length < 4) return { signal: null, reason: 'Insufficient data' };
     const first = candles[0];
     const orbHigh = Math.max(...candles.slice(0, 2).map(c => c.high));
     const orbLow = Math.min(...candles.slice(0, 2).map(c => c.low));
     const last = candles[candles.length - 1];
+    const prev = candles[candles.length - 2];
     
-    if (last.close > orbHigh) {
+    // Only signal on the CANDLE that breaks out (not every check after)
+    if (last.close > orbHigh && prev.close <= orbHigh) {
       return { signal: 'LONG', entry: orbHigh, stop: orbLow, target: orbHigh + (orbHigh - orbLow) * 1.5, reason: `ORB High break: ${orbHigh.toFixed(2)}` };
     }
-    if (last.close < orbLow) {
+    if (last.close < orbLow && prev.close >= orbLow) {
       return { signal: 'SHORT', entry: orbLow, stop: orbHigh, target: orbLow - (orbHigh - orbLow) * 1.5, reason: `ORB Low break: ${orbLow.toFixed(2)}` };
     }
     return { signal: null, orbHigh, orbLow, reason: 'Waiting for breakout' };
@@ -2880,7 +2882,7 @@ const PreSignalDetector = {
 const AutoTrader = {
   enabled: true,
   lastSignalTime: {},
-  minSignalGap: 900000, // 15 minutes between signals per strategy
+  minSignalGap: 960000, // 16 minutes — slightly more than 15m candle to avoid same-bar re-entry
   
   // SESSION QUALITY FILTER — avoid low-volume periods
   isSessionTradeable() {
@@ -2955,6 +2957,21 @@ const AutoTrader = {
         const lastTime = this.lastSignalTime[signalKey] || 0;
         if (Date.now() - lastTime < this.minSignalGap) continue;
         
+        // SKIP if entry condition is expired (price moved past the setup)
+        const symCandles = state.multiCandles[sym];
+        if (symCandles && symCandles.length > 0) {
+          const lastClose = symCandles[symCandles.length - 1].close;
+          const prevClose = symCandles[symCandles.length - 2]?.close || lastClose;
+          const dir = strat.signal.signal;
+          // LONG signal: price must still be below or near target (not already rallied past it)
+          if (dir === 'LONG' && strat.signal.target && lastClose > strat.signal.target) continue;
+          // SHORT signal: price must still be above or near target (not already dropped past it)
+          if (dir === 'SHORT' && strat.signal.target && lastClose < strat.signal.target) continue;
+          // Don't enter if price hasn't moved in our direction since last candle
+          if (dir === 'LONG' && prevClose > lastClose) continue;
+          if (dir === 'SHORT' && prevClose < lastClose) continue;
+        }
+        
         // CORRELATION CHECK: TACO and FAFO are both fear-based LONG strategies
         const isFearBased = strat.name === 'TACO' || strat.name === 'FAFO';
         const hasFearBasedOpen = state.openPositions.some(p => p.strategy === 'TACO' || p.strategy === 'FAFO');
@@ -2993,6 +3010,10 @@ const AutoTrader = {
       const price = state.prices[pos.symbol]?.price;
       if (!price) return;
       
+      // GRACE PERIOD: Don't trail until trade is at least 1 candle old (15 min)
+      const holdMs = Date.now() - new Date(pos.entryTime).getTime();
+      if (holdMs < 900000) return;
+      
       const newStop = RiskManager.getTrailingStop(pos, price);
       if (newStop && newStop > (pos.stop || 0)) {
         pos.stop = newStop;
@@ -3019,20 +3040,21 @@ const AutoTrader = {
     const candles = state.multiCandles[symbol] || state.candles;
     if (!candles || candles.length < 20) return;
     
-    // Calculate ATR for stops
+    // Calculate ATR for fallback stops
     const highs = candles.map(c => c.high);
     const lows = candles.map(c => c.low);
     const closes = candles.map(c => c.close);
     const atr = Indicators.atr(highs, lows, closes);
     const currentATR = atr[atr.length - 1] || 20;
     
+    // USE SIGNAL'S STOP/TARGET if provided, otherwise use ATR
     let stop, target;
     if (signal.signal === 'LONG') {
-      stop = currentPrice - currentATR * 0.6;   // Tight stop per VWAP strategy
-      target = currentPrice + currentATR * 1.5;
+      stop = signal.stop || (currentPrice - currentATR * 0.6);
+      target = signal.target || (currentPrice + currentATR * 1.5);
     } else {
-      stop = currentPrice + currentATR * 0.6;
-      target = currentPrice - currentATR * 1.5;
+      stop = signal.stop || (currentPrice + currentATR * 0.6);
+      target = signal.target || (currentPrice - currentATR * 1.5);
     }
     
     // Position sizing using DRAWDOWN-based risk
