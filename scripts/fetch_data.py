@@ -15,7 +15,7 @@ except ImportError:
     os.system(f"{sys.executable} -m pip install yfinance -q")
     import yfinance as yf
 
-SYMBOLS = ['ES=F', 'NQ=F', 'CL=F', 'GC=F']
+SYMBOLS = ['ES=F', 'NQ=F', 'CL=F', 'GC=F', 'M2K=F', 'ZN=F']
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
 
 def fetch_candles(symbol, interval='15m', range_='5d'):
