@@ -1468,19 +1468,17 @@ const DataFetcher = {
     if (res.ok) { HAS_BACKEND = true; console.log('Backend server detected'); return; }
   } catch (e) {}
   try {
-    const res = await fetch(`${DATA_BASE}/meta.json`, { signal: AbortSignal.timeout(2000) });
+    const res = await fetch(`${DATA_BASE}/meta.json`, { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
       const meta = await res.json();
       console.log('Static data available, updated: ' + meta.updated);
       DataFetcher.dataSource = 'static';
       return;
     }
-    // meta.json 404 — static data not yet generated
-    DataFetcher._staticFailed = true;
-    console.log('No static data yet (GitHub Action not run)');
+    // meta.json 404 — let individual _fetchFromStatic calls handle negative caching
+    console.log('Static data not available yet, will retry per-request');
   } catch (e) {
-    DataFetcher._staticFailed = true;
-    console.log('No static data available');
+    console.log('Static data probe failed, will retry per-request');
   }
   console.log('No backend or static data — using sample data');
 })();
