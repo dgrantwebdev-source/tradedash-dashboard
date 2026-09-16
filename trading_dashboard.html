@@ -442,6 +442,7 @@ body.player-expanded{padding-bottom:80px}
         <div class="stat-row"><span class="stat-label">Unrealized</span><span class="stat-value" id="today-pnl-unrealized">$0.00</span></div>
         <div class="stat-row"><span class="stat-label">Total</span><span class="stat-value" id="today-pnl-total">$0.00</span></div>
         <div class="stat-row"><span class="stat-label">Trades</span><span class="stat-value" id="today-trades">0</span></div>
+        <button class="btn mt-8" style="width:100%;background:var(--green);color:#000;font-weight:600" onclick="logManualTrade()">+ Log Trade Manually</button>
       </div>
     </div>
   </div>
@@ -516,6 +517,7 @@ body.player-expanded{padding-bottom:80px}
   <div class="flex-between mb-16">
     <h2>Trade Journal</h2>
     <div>
+      <button class="btn" onclick="logManualTrade()" style="background:var(--green);color:#000;font-weight:600">+ Log Trade</button>
       <button class="btn" onclick="exportTrades()">Export CSV</button>
       <button class="btn danger" onclick="clearTrades()">Clear All</button>
     </div>
@@ -2117,6 +2119,9 @@ function updateUI() {
   // Signals
   updateSignals();
   
+  // Open Positions
+  updateOpenPositions();
+  
   // Risk
   updateRisk();
   
@@ -2184,8 +2189,10 @@ function updateSignals() {
         <strong>${s.name}</strong>
         <span class="signal-badge ${s.signal?.toLowerCase() || 'wait'}">${s.signal || 'WAIT'}</span>
       </div>
-      <div class="text-xs mt-16">${s.reason}</div>
-      ${s.confidence ? `<div class="text-xs">Confidence: ${(s.confidence * 100).toFixed(0)}%</div>` : ''}
+      <div class="text-xs mt-8">${s.reason}</div>
+      ${s.confidence ? `<div class="text-xs mt-4">Confidence: ${(s.confidence * 100).toFixed(0)}%</div>` : ''}
+      ${s.stop ? `<div class="text-xs">Stop: $${s.stop.toFixed(2)} | Target: ${s.target ? '$' + s.target.toFixed(2) : 'VWAP'}</div>` : ''}
+      <button class="btn btn-sm mt-8" style="width:100%;background:var(--green);color:#000;font-weight:600" onclick='takeTrade(${JSON.stringify({name:s.name,signal:s.signal,stop:s.stop,target:s.target,confidence:s.confidence,reason:s.reason}).replace(/'/g,"&#39;")})'>Take ${s.signal} Trade</button>
     </div>
   `).join('');
 }
@@ -2274,6 +2281,21 @@ function updateTradeJournal() {
   document.getElementById('today-pnl-realized').textContent = `$${todayPnl.toFixed(2)}`;
   document.getElementById('today-pnl-realized').className = `stat-value ${todayPnl >= 0 ? 'positive' : 'negative'}`;
   document.getElementById('today-trades').textContent = todayTrades.length;
+  
+  // Unrealized P&L from open positions
+  let unrealizedPnl = 0;
+  state.openPositions.forEach(t => {
+    const config = CONFIG.symbols[t.symbol] || { multiplier: 50 };
+    const currentPrice = state.prices[t.symbol]?.price || t.entry;
+    const pnl = t.direction === 'LONG'
+      ? (currentPrice - t.entry) * config.multiplier
+      : (t.entry - currentPrice) * config.multiplier;
+    unrealizedPnl += pnl;
+  });
+  document.getElementById('today-pnl-unrealized').textContent = `$${unrealizedPnl.toFixed(2)}`;
+  document.getElementById('today-pnl-unrealized').className = `stat-value ${unrealizedPnl >= 0 ? 'positive' : 'negative'}`;
+  document.getElementById('today-pnl-total').textContent = `$${(todayPnl + unrealizedPnl).toFixed(2)}`;
+  document.getElementById('today-pnl-total').className = `stat-value ${(todayPnl + unrealizedPnl) >= 0 ? 'positive' : 'negative'}`;
 }
 
 function updateCompliance() {
@@ -2319,6 +2341,139 @@ function executeTrade(signal) {
   state.openPositions.push(trade);
   localStorage.setItem('openPositions', JSON.stringify(state.openPositions));
   showAlert(`${signal.signal} ${signal.name} @ ${trade.entry.toFixed(2)}`, 'success');
+  updateOpenPositions();
+}
+
+// Paper trading: take a signal and log it
+function takeTrade(signalData) {
+  const signal = {
+    name: signalData.name,
+    signal: signalData.signal,
+    stop: signalData.stop,
+    target: signalData.target,
+    confidence: signalData.confidence,
+    reason: signalData.reason
+  };
+  executeTrade(signal);
+}
+
+// Render open positions with Close buttons
+function updateOpenPositions() {
+  const panel = document.getElementById('open-positions');
+  if (!state.openPositions.length) {
+    panel.innerHTML = '<div class="text-sm text-xs">No open positions</div>';
+    return;
+  }
+  panel.innerHTML = state.openPositions.map(t => {
+    const config = CONFIG.symbols[t.symbol] || { multiplier: 50, name: t.symbol };
+    const currentPrice = state.prices[t.symbol]?.price || t.entry;
+    const unrealPnl = t.direction === 'LONG'
+      ? (currentPrice - t.entry) * config.multiplier
+      : (t.entry - currentPrice) * config.multiplier;
+    const entryTime = new Date(t.entryTime);
+    const mins = Math.round((Date.now() - entryTime.getTime()) / 60000);
+    return `
+      <div class="trade-card ${unrealPnl >= 0 ? 'winning' : 'losing'}" style="margin-bottom:8px">
+        <div class="flex-between">
+          <strong>${t.direction} ${config.name}</strong>
+          <span class="signal-badge ${t.direction.toLowerCase()}">${t.direction}</span>
+        </div>
+        <div class="text-xs mt-8">Entry: $${t.entry.toFixed(2)} | ${mins}m ago</div>
+        <div class="text-xs">Stop: $${t.stop?.toFixed(2) || '--'} | Target: ${t.target ? '$' + t.target.toFixed(2) : 'VWAP'}</div>
+        <div class="text-xs ${unrealPnl >= 0 ? 'positive' : 'negative'}">Unrealized: $${unrealPnl.toFixed(2)}</div>
+        <div style="display:flex;gap:4px;margin-top:8px">
+          <button class="btn btn-sm" style="flex:1;background:var(--green);color:#000" onclick="promptCloseTrade(${t.id}, 'TARGET')">Target</button>
+          <button class="btn btn-sm" style="flex:1;background:var(--red);color:#fff" onclick="promptCloseTrade(${t.id}, 'STOP')">Stop</button>
+          <button class="btn btn-sm" style="flex:1" onclick="promptCloseTrade(${t.id}, 'MANUAL')">Manual</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Prompt for exit price and close trade
+function promptCloseTrade(tradeId, reason) {
+  const trade = state.openPositions.find(t => t.id === tradeId);
+  if (!trade) return;
+  const config = CONFIG.symbols[trade.symbol] || { multiplier: 50 };
+  const currentPrice = state.prices[trade.symbol]?.price || trade.entry;
+  
+  let exitPrice;
+  if (reason === 'TARGET') {
+    exitPrice = trade.target || currentPrice;
+  } else if (reason === 'STOP') {
+    exitPrice = trade.stop || currentPrice;
+  } else {
+    const input = prompt(`Exit price for ${trade.direction} ${config.name}:`, currentPrice.toFixed(2));
+    if (input === null) return;
+    exitPrice = parseFloat(input);
+    if (isNaN(exitPrice)) return;
+  }
+  
+  closeTrade(tradeId, exitPrice, reason);
+  showAlert(`Closed ${trade.direction} ${config.name} @ $${exitPrice.toFixed(2)} (${reason})`, exitPrice > trade.entry === (trade.direction === 'LONG') ? 'success' : 'warning');
+}
+
+// Manual trade logging (for trades executed outside dashboard)
+function logManualTrade() {
+  const symbol = prompt('Symbol (ES=F, NQ=F, CL=F, GC=F, M2K=F, ZN=F):', state.currentSymbol);
+  if (!symbol) return;
+  const direction = prompt('Direction (LONG or SHORT):', 'LONG');
+  if (!direction) return;
+  const entry = parseFloat(prompt('Entry price:', state.prices[symbol]?.price?.toFixed(2) || '0'));
+  if (isNaN(entry)) return;
+  const exit = parseFloat(prompt('Exit price (0 if still open):', '0'));
+  const stop = parseFloat(prompt('Stop price (0 if none):', '0')) || null;
+  const target = parseFloat(prompt('Target price (0 for VWAP):', '0')) || null;
+  const strategy = prompt('Strategy (VWAP, ORB, Manual):', 'Manual') || 'Manual';
+  
+  if (exit && exit > 0) {
+    // Closed trade
+    const config = CONFIG.symbols[symbol] || { multiplier: 50 };
+    const pnl = direction === 'LONG'
+      ? (exit - entry) * config.multiplier
+      : (entry - exit) * config.multiplier;
+    const duration = prompt('Duration (e.g. 15m, 1h):', '0m');
+    const grade = pnl > 0 ? 'B' : 'D';
+    
+    const closedTrade = {
+      id: Date.now(),
+      strategy,
+      direction: direction.toUpperCase(),
+      symbol,
+      entry,
+      exit,
+      stop,
+      target,
+      entryTime: new Date().toISOString(),
+      exitTime: new Date().toISOString(),
+      pnl,
+      duration: duration || '0m',
+      grade,
+      exitReason: 'MANUAL',
+      status: 'CLOSED'
+    };
+    state.trades.push(closedTrade);
+    localStorage.setItem('trades', JSON.stringify(state.trades));
+    showAlert(`Logged: ${direction} ${symbol} $${entry}→$${exit} P&L: $${pnl.toFixed(2)}`, pnl > 0 ? 'success' : 'warning');
+  } else {
+    // Open trade
+    const trade = {
+      id: Date.now(),
+      strategy,
+      direction: direction.toUpperCase(),
+      symbol,
+      entry,
+      stop,
+      target,
+      entryTime: new Date().toISOString(),
+      status: 'OPEN'
+    };
+    state.openPositions.push(trade);
+    localStorage.setItem('openPositions', JSON.stringify(state.openPositions));
+    showAlert(`Opened: ${direction} ${symbol} @ $${entry}`, 'success');
+  }
+  updateUI();
 }
 
 function closeTrade(tradeId, exitPrice, reason) {
