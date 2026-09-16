@@ -536,6 +536,11 @@ body.player-expanded{padding-bottom:80px}
   <div class="flex-between mb-16">
     <h2>Trade Journal</h2>
     <div>
+      <select id="journalTypeFilter" class="btn" onchange="filterJournalByType()" style="margin-right:8px">
+        <option value="all">All Trades</option>
+        <option value="paper">Paper Only</option>
+        <option value="manual">Manual Only</option>
+      </select>
       <button class="btn" onclick="logManualTrade()" style="background:var(--green);color:#000;font-weight:600">+ Log Trade</button>
       <button class="btn" onclick="exportTrades()">Export CSV</button>
       <button class="btn danger" onclick="clearTrades()">Clear All</button>
@@ -548,7 +553,7 @@ body.player-expanded{padding-bottom:80px}
   </div>
   <div class="card">
     <table>
-      <thead><tr><th>Date</th><th>Strategy</th><th>Direction</th><th>Entry</th><th>Exit</th><th>P&L</th><th>Duration</th><th>Grade</th></tr></thead>
+      <thead><tr><th>Date</th><th>Strategy</th><th>Direction</th><th>Type</th><th>Entry</th><th>Exit</th><th>P&L</th><th>Duration</th><th>Grade</th></tr></thead>
       <tbody id="trade-history">
         <tr><td colspan="8" class="loading">No trades yet</td></tr>
       </tbody>
@@ -2431,13 +2436,20 @@ function updateTradeJournal() {
   document.getElementById('total-pnl').textContent = `$${totalPnl.toFixed(2)}`;
   document.getElementById('total-pnl').className = `stat-value ${totalPnl >= 0 ? 'positive' : 'negative'}`;
   
+  // Apply type filter
+  const typeFilter = document.getElementById('journalTypeFilter')?.value || 'all';
+  let filtered = state.trades;
+  if (typeFilter === 'paper') filtered = state.trades.filter(t => t.paper !== false);
+  if (typeFilter === 'manual') filtered = state.trades.filter(t => t.paper === false);
+  
   const tbody = document.getElementById('trade-history');
-  if (state.trades.length) {
-    tbody.innerHTML = state.trades.slice(-50).reverse().map(t => `
+  if (filtered.length) {
+    tbody.innerHTML = filtered.slice(-50).reverse().map(t => `
       <tr>
         <td>${new Date(t.entryTime).toLocaleDateString()}</td>
         <td>${t.strategy}</td>
         <td><span class="signal-badge ${t.direction.toLowerCase()}">${t.direction}</span></td>
+        <td><span style="font-size:10px;padding:2px 6px;border-radius:3px;${t.paper !== false ? 'background:rgba(0,191,165,0.15);color:var(--green)' : 'background:rgba(255,255,255,0.1);color:var(--text-muted)'}">${t.paper !== false ? 'PAPER' : 'MANUAL'}</span></td>
         <td>${t.entry?.toFixed(2) || '--'}</td>
         <td>${t.exit?.toFixed(2) || '--'}</td>
         <td class="${t.pnl >= 0 ? 'positive' : 'negative'}">$${(t.pnl || 0).toFixed(2)}</td>
@@ -2445,6 +2457,8 @@ function updateTradeJournal() {
         <td>${t.grade || '--'}</td>
       </tr>
     `).join('');
+  } else {
+    tbody.innerHTML = '<tr><td colspan="9" class="loading">No trades match filter</td></tr>';
   }
   
   // Today's P&L
@@ -2469,6 +2483,10 @@ function updateTradeJournal() {
   document.getElementById('today-pnl-unrealized').className = `stat-value ${unrealizedPnl >= 0 ? 'positive' : 'negative'}`;
   document.getElementById('today-pnl-total').textContent = `$${(todayPnl + unrealizedPnl).toFixed(2)}`;
   document.getElementById('today-pnl-total').className = `stat-value ${(todayPnl + unrealizedPnl) >= 0 ? 'positive' : 'negative'}`;
+}
+
+function filterJournalByType() {
+  updateTradeJournal();
 }
 
 function updateCompliance() {
@@ -2624,7 +2642,8 @@ function logManualTrade() {
       duration: duration || '0m',
       grade,
       exitReason: 'MANUAL',
-      status: 'CLOSED'
+      status: 'CLOSED',
+      paper: false
     };
     state.trades.push(closedTrade);
     localStorage.setItem('trades', JSON.stringify(state.trades));
@@ -2640,7 +2659,8 @@ function logManualTrade() {
       stop,
       target,
       entryTime: new Date().toISOString(),
-      status: 'OPEN'
+      status: 'OPEN',
+      paper: false
     };
     state.openPositions.push(trade);
     localStorage.setItem('openPositions', JSON.stringify(state.openPositions));
@@ -2733,8 +2753,8 @@ function saveSettings() {
 }
 
 function exportTrades() {
-  const csv = 'Date,Strategy,Direction,Entry,Exit,P&L,Duration,Grade\n' +
-    state.trades.map(t => `${new Date(t.entryTime).toISOString()},${t.strategy},${t.direction},${t.entry},${t.exit||''},${t.pnl||0},${t.duration||''},${t.grade||''}`).join('\n');
+  const csv = 'Date,Strategy,Direction,Type,Entry,Exit,P&L,Duration,Grade\n' +
+    state.trades.map(t => `${new Date(t.entryTime).toISOString()},${t.strategy},${t.direction},${t.paper !== false ? 'PAPER' : 'MANUAL'},${t.entry},${t.exit||''},${t.pnl||0},${t.duration||''},${t.grade||''}`).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -3237,7 +3257,8 @@ const AutoTrader = {
       status: 'OPEN',
       confidence: signal.confidence || 0.5,
       reason: signal.reason,
-      auto: true
+      auto: true,
+      paper: true
     };
     
     state.openPositions.push(trade);
