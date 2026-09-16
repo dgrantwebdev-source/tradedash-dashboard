@@ -359,6 +359,9 @@ body.player-expanded{padding-bottom:80px}
       <button class="btn" id="autoTradeBtn" onclick="toggleAutoTrade()" style="background:var(--green);color:#000">
         AUTO: ES+NQ
       </button>
+      <button class="btn" id="audioToggle" onclick="AudioSignals.toggle()" title="Audio ON — click to mute" style="font-size:16px;width:36px;padding:4px">
+        🔊
+      </button>
     </span>
   </div>
 </div>
@@ -1210,6 +1213,103 @@ const CONFIG = {
   nyOpen: 9.5,
   nyClose: 16.0
 };
+
+// ═══════════════════════════════════════════════════════════
+// AUDIO SIGNALS — Web Speech API (no server, no dependencies)
+// ═══════════════════════════════════════════════════════════
+const AudioSignals = {
+  enabled: true,
+  voice: null,
+  rate: 1.1,
+  
+  init() {
+    this.enabled = localStorage.getItem('audioEnabled') !== 'false';
+    // Pick a clear English voice
+    const loadVoices = () => {
+      const voices = speechSynthesis.getVoices();
+      this.voice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google')) ||
+                   voices.find(v => v.lang.startsWith('en-US')) ||
+                   voices.find(v => v.lang.startsWith('en')) ||
+                   voices[0];
+    };
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+  },
+  
+  speak(text) {
+    if (!this.enabled || !window.speechSynthesis) return;
+    // Cancel any pending speech
+    speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.voice = this.voice;
+    utter.rate = this.rate;
+    utter.pitch = 1.0;
+    utter.volume = 0.9;
+    speechSynthesis.speak(utter);
+  },
+  
+  toggle() {
+    this.enabled = !this.enabled;
+    localStorage.setItem('audioEnabled', this.enabled);
+    const btn = document.getElementById('audioToggle');
+    if (btn) {
+      btn.textContent = this.enabled ? '🔊' : '🔇';
+      btn.title = this.enabled ? 'Audio ON — click to mute' : 'Audio OFF — click to unmute';
+    }
+    this.speak(this.enabled ? 'Audio enabled' : 'Audio disabled');
+  },
+  
+  // === TRADE EVENTS ===
+  orderFilled(direction, symbol, price) {
+    const name = CONFIG.symbols[symbol]?.name || symbol;
+    this.speak(`Order filled. ${direction} ${name} at ${price.toFixed(2)}`);
+  },
+  
+  tradeClosed(direction, symbol, pnl, reason) {
+    const name = CONFIG.symbols[symbol]?.name || symbol;
+    const outcome = pnl >= 0 ? 'profit' : 'loss';
+    const amount = Math.abs(pnl).toFixed(0);
+    if (pnl >= 0) {
+      this.speak(`Trade closed. ${name} ${outcome} of $${amount}. ${reason}`);
+    } else {
+      this.speak(`Trade closed. ${name} ${outcome} of $${amount}. ${reason}`);
+    }
+  },
+  
+  signalAlert(strategy, direction, symbol) {
+    const name = CONFIG.symbols[symbol]?.name || symbol;
+    this.speak(`${strategy} signal. ${direction} ${name}`);
+  },
+  
+  stopHit(symbol) {
+    const name = CONFIG.symbols[symbol]?.name || symbol;
+    this.speak(`Stop hit. ${name} position closed`);
+  },
+  
+  targetHit(symbol) {
+    const name = CONFIG.symbols[symbol]?.name || symbol;
+    this.speak(`Target filled. ${name} position closed`);
+  },
+  
+  trailingStop(symbol) {
+    const name = CONFIG.symbols[symbol]?.name || symbol;
+    this.speak(`Trailing stop. ${name} position closed`);
+  },
+  
+  sessionClosed() {
+    this.speak('Session closed. Force flatten in 5 minutes');
+  },
+  
+  circuitBreaker(reason) {
+    this.speak(`Warning. Circuit breaker triggered. ${reason}`);
+  },
+  
+  riskWarning(msg) {
+    this.speak(`Risk warning. ${msg}`);
+  }
+};
+
+AudioSignals.init();
 
 // ═══════════════════════════════════════════════════════════
 // STATE
@@ -2532,6 +2632,7 @@ function executeTrade(signal) {
   state.openPositions.push(trade);
   localStorage.setItem('openPositions', JSON.stringify(state.openPositions));
   showAlert(`${signal.signal} ${signal.name} @ ${trade.entry.toFixed(2)}`, 'success');
+  AudioSignals.orderFilled(signal.signal, state.currentSymbol, trade.entry);
   updateOpenPositions();
 }
 
@@ -2710,6 +2811,17 @@ function closeTrade(tradeId, exitPrice, reason) {
   // Log to activity panel
   const symName = config.name || trade.symbol;
   AutoTradeLog.add('exit', `🔴 CLOSED: ${trade.direction} ${symName} @ $${exitPrice.toFixed(2)} | P&L: $${pnl.toFixed(2)} (${grade}) | ${reason} | ${duration}m`);
+  
+  // Audio signal
+  if (reason === 'TRAILING_STOP') {
+    AudioSignals.trailingStop(trade.symbol);
+  } else if (reason === 'TARGET') {
+    AudioSignals.targetHit(trade.symbol);
+  } else if (reason === 'STOP') {
+    AudioSignals.stopHit(trade.symbol);
+  } else {
+    AudioSignals.tradeClosed(trade.direction, trade.symbol, pnl, reason);
+  }
   
   if (pnl > 0) state.consecutiveLosses = 0;
   else state.consecutiveLosses++;
@@ -3057,6 +3169,7 @@ const AutoTrader = {
     if (circuit.halt) {
       if (circuit.severity === 'critical') {
         AutoTradeLog.add('exit', `🛑 HALTED: ${circuit.reason}`);
+        AudioSignals.circuitBreaker(circuit.reason);
         showAlert(`🛑 HALTED: ${circuit.reason}`, 'danger');
       }
       return;
@@ -3154,6 +3267,7 @@ const AutoTrader = {
         }
         
         AutoTradeLog.add('signal', `📡 ${strat.name} ${CONFIG.symbols[sym]?.name}: ${strat.signal.signal} (${(strat.signal.confidence * 100).toFixed(0)}%) — ${strat.signal.reason}`);
+        AudioSignals.signalAlert(strat.name, strat.signal.signal, sym);
         allSignals.push({ name: strat.name, symbol: sym, ...strat.signal });
       }
     }
@@ -3177,6 +3291,7 @@ const AutoTrader = {
         if (price) {
           closeTrade(pos.id, price, timeCheck.reason);
           showAlert(`⏰ Time exit: ${pos.strategy} — ${timeCheck.reason}`, 'warning');
+          AudioSignals.sessionClosed();
         }
       }
     });
@@ -3201,9 +3316,11 @@ const AutoTrader = {
         if (pos.direction === 'LONG' && price <= pos.stop) {
           closeTrade(pos.id, price, 'TRAILING_STOP');
           showAlert(`📉 Trailing stop hit: ${pos.strategy} @ ${price.toFixed(2)}`, 'warning');
+          AudioSignals.trailingStop(pos.symbol);
         } else if (pos.direction === 'SHORT' && price >= pos.stop) {
           closeTrade(pos.id, price, 'TRAILING_STOP');
           showAlert(`📈 Trailing stop hit: ${pos.strategy} @ ${price.toFixed(2)}`, 'warning');
+          AudioSignals.trailingStop(pos.symbol);
         }
       }
     });
@@ -3271,6 +3388,9 @@ const AutoTrader = {
     const symName = config.name || symbol;
     const riskAmount = stopDistance * contracts * config.multiplier;
     showAlert(`AUTO: ${signal.signal} ${strategyName} ${symName} @ ${currentPrice.toFixed(2)} | ${contracts} ct | Risk: $${riskAmount.toFixed(0)} | Stop: ${stop.toFixed(2)} | Target: ${target.toFixed(2)}`, 'success');
+    
+    // Audio signal
+    AudioSignals.orderFilled(signal.signal, symbol, currentPrice);
     
     console.log(`[AUTO TRADER] ${strategyName} ${symName}: ${signal.signal} @ ${currentPrice} | ${contracts} ct | Risk: $${riskAmount}`);
     updateUI();
