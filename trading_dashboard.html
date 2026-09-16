@@ -394,6 +394,25 @@ body.player-expanded{padding-bottom:80px}
         <div id="chart-container"></div>
         <div id="volume-container"></div>
       </div>
+      
+      <!-- AUTO-TRADER ACTIVITY LOG -->
+      <div class="card mb-16" style="border:1px solid var(--border)">
+        <div class="flex-between mb-8">
+          <h3 style="font-size:13px">🤖 Auto-Trader Activity</h3>
+          <span id="auto-status" class="text-xs" style="color:var(--green)">● SCANNING</span>
+        </div>
+        <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap">
+          <div class="text-xs"><strong>Last scan:</strong> <span id="auto-last-scan">--</span></div>
+          <div class="text-xs"><strong>Watching:</strong> <span id="auto-symbols">ES, NQ</span></div>
+          <div class="text-xs"><strong>Strategy:</strong> <span id="auto-strategy">VWAP + TACO + FAFO + ORB</span></div>
+          <div class="text-xs"><strong>Session:</strong> <span id="auto-session">--</span></div>
+        </div>
+        <div id="auto-indicator-levels" style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap"></div>
+        <div id="auto-log" style="max-height:120px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--text-muted);background:rgba(0,0,0,0.2);padding:8px;border-radius:4px">
+          <div>Waiting for first scan...</div>
+        </div>
+      </div>
+      
       <div class="grid grid-4">
         <div class="card">
           <h3>ES / S&P 500</h3>
@@ -2200,6 +2219,100 @@ function updateUI() {
   document.getElementById('regime-banner').textContent = `Regime: ${regime.regime} | Recommended: ${regime.strategies.join(', ')}`;
 }
 
+// ═══════════════════════════════════════════════════════════
+// AUTO-TRADER ACTIVITY LOG
+// ═══════════════════════════════════════════════════════════
+const AutoTradeLog = {
+  entries: [],
+  maxEntries: 30,
+  
+  add(type, msg) {
+    const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const icon = type === 'scan' ? '🔍' : type === 'signal' ? '📡' : type === 'enter' ? '✅' : type === 'exit' ? '🔴' : type === 'skip' ? '⏭️' : type === 'session' ? '🕐' : 'ℹ️';
+    this.entries.unshift({ time, icon, msg });
+    if (this.entries.length > this.maxEntries) this.entries.pop();
+    this.render();
+  },
+  
+  render() {
+    const el = document.getElementById('auto-log');
+    if (!el) return;
+    if (this.entries.length === 0) {
+      el.innerHTML = '<div>Waiting for first scan...</div>';
+      return;
+    }
+    el.innerHTML = this.entries.map(e => 
+      `<div style="margin-bottom:2px"><span style="color:#666">${e.time}</span> ${e.icon} ${e.msg}</div>`
+    ).join('');
+  }
+};
+
+function updateAutoTraderStatus() {
+  const now = new Date();
+  const lastScan = AutoTrader._lastScanTime;
+  
+  // Last scan time
+  const scanEl = document.getElementById('auto-last-scan');
+  if (scanEl && lastScan) {
+    const ago = Math.round((now - lastScan) / 1000);
+    scanEl.textContent = ago < 5 ? 'just now' : `${ago}s ago`;
+    scanEl.style.color = ago > 60 ? 'var(--red)' : ago > 30 ? 'var(--yellow)' : 'var(--green)';
+  }
+  
+  // Session status
+  const sessionEl = document.getElementById('auto-session');
+  if (sessionEl) {
+    const session = AutoTrader.isSessionTradeable();
+    sessionEl.textContent = session.tradeable ? `✅ ${session.reason}` : `❌ ${session.reason}`;
+    sessionEl.style.color = session.tradeable ? 'var(--green)' : 'var(--red)';
+  }
+  
+  // Indicator levels for ES and NQ
+  const indicatorEl = document.getElementById('auto-indicator-levels');
+  if (indicatorEl) {
+    let html = '';
+    for (const sym of AUTO_TRADE_SYMBOLS) {
+      const candles = state.multiCandles[sym];
+      const config = CONFIG.symbols[sym];
+      if (!candles || candles.length < 20 || !config) continue;
+      
+      const closes = candles.map(c => c.close);
+      const highs = candles.map(c => c.high);
+      const lows = candles.map(c => c.low);
+      const vwap = Indicators.vwap(highs, lows, closes, candles.map(c => c.volume || 1));
+      const atr = Indicators.atr(highs, lows, closes);
+      const rsi = Indicators.rsi(closes);
+      const price = state.prices[sym]?.price || closes[closes.length - 1];
+      
+      const vwapNow = vwap[vwap.length - 1];
+      const atrNow = atr[atr.length - 1];
+      const rsiNow = rsi[rsi.length - 1];
+      const distFromVwap = vwapNow ? ((price - vwapNow) / atrNow * 100).toFixed(0) : '--';
+      
+      html += `<div class="text-xs" style="background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:3px">
+        <strong style="color:${config.color}">${config.name}</strong> 
+        VWAP: $${vwapNow?.toFixed(2) || '--'} | 
+        ATR: $${atrNow?.toFixed(2) || '--'} | 
+        RSI: ${rsiNow?.toFixed(1) || '--'} | 
+        <span style="color:${parseFloat(distFromVwap) < 0 ? 'var(--green)' : 'var(--red)'}">Dist: ${distFromVwap}%</span>
+      </div>`;
+    }
+    indicatorEl.innerHTML = html;
+  }
+  
+  // Status dot
+  const statusEl = document.getElementById('auto-status');
+  if (statusEl) {
+    if (!AutoTrader.enabled) {
+      statusEl.textContent = '● OFF';
+      statusEl.style.color = 'var(--red)';
+    } else {
+      statusEl.textContent = '● SCANNING';
+      statusEl.style.color = 'var(--green)';
+    }
+  }
+}
+
 function updatePreSignals(alerts) {
   const panel = document.getElementById('pre-signals-panel');
   if (!panel) return;
@@ -2574,6 +2687,10 @@ function closeTrade(tradeId, exitPrice, reason) {
   state.openPositions = state.openPositions.filter(t => t.id !== tradeId);
   state.dailyPnL += pnl;
   
+  // Log to activity panel
+  const symName = config.name || trade.symbol;
+  AutoTradeLog.add('exit', `🔴 CLOSED: ${trade.direction} ${symName} @ $${exitPrice.toFixed(2)} | P&L: $${pnl.toFixed(2)} (${grade}) | ${reason} | ${duration}m`);
+  
   if (pnl > 0) state.consecutiveLosses = 0;
   else state.consecutiveLosses++;
   
@@ -2907,12 +3024,18 @@ const AutoTrader = {
   },
   
   checkAndExecute() {
-    if (!this.enabled) return;
+    this._lastScanTime = new Date();
+    
+    if (!this.enabled) {
+      AutoTradeLog.add('scan', 'Auto-trader is OFF');
+      return;
+    }
     
     // Check circuit breakers
     const circuit = RiskManager.checkCircuitBreakers();
     if (circuit.halt) {
       if (circuit.severity === 'critical') {
+        AutoTradeLog.add('exit', `🛑 HALTED: ${circuit.reason}`);
         showAlert(`🛑 HALTED: ${circuit.reason}`, 'danger');
       }
       return;
@@ -2920,7 +3043,10 @@ const AutoTrader = {
     
     // Session quality filter
     const sessionCheck = this.isSessionTradeable();
-    if (!sessionCheck.tradeable) return;
+    if (!sessionCheck.tradeable) {
+      AutoTradeLog.add('session', `Session not tradeable: ${sessionCheck.reason}`);
+      return;
+    }
     
     // Time-based exit check for all open positions
     this.checkTimeExits();
@@ -2929,7 +3055,10 @@ const AutoTrader = {
     this.checkTrailingStops();
     
     // Max 2 open positions across both symbols
-    if (state.openPositions.length >= 2) return;
+    if (state.openPositions.length >= 2) {
+      AutoTradeLog.add('skip', `Max positions reached (${state.openPositions.length}/2)`);
+      return;
+    }
     
     const vix = state.prices['CL=F'] ? Math.abs(state.prices['CL=F'].change) * 5 + 15 : 25;
     
@@ -2937,10 +3066,16 @@ const AutoTrader = {
     const allSignals = [];
     for (const sym of AUTO_TRADE_SYMBOLS) {
       const candles = state.multiCandles[sym];
-      if (!candles || candles.length < 20) continue;
+      if (!candles || candles.length < 20) {
+        AutoTradeLog.add('scan', `${CONFIG.symbols[sym]?.name || sym}: waiting for data (${candles?.length || 0}/20 candles)`);
+        continue;
+      }
       
       // Skip if we already have a position on this symbol
-      if (state.openPositions.some(p => p.symbol === sym)) continue;
+      if (state.openPositions.some(p => p.symbol === sym)) {
+        AutoTradeLog.add('skip', `${CONFIG.symbols[sym]?.name}: already have open position`);
+        continue;
+      }
       
       const strategies = [
         { name: 'VWAP', signal: Strategies.vwap(candles) },
@@ -2950,12 +3085,20 @@ const AutoTrader = {
       ];
       
       for (const strat of strategies) {
-        if (!strat.signal || !strat.signal.signal) continue;
+        if (!strat.signal || !strat.signal.signal) {
+          // Log why no signal
+          AutoTradeLog.add('scan', `${CONFIG.symbols[sym]?.name} ${strat.name}: ${strat.signal?.reason || 'no setup'}`);
+          continue;
+        }
         
         // Check if we already took this signal recently on this symbol
         const signalKey = `${strat.name}_${sym}`;
         const lastTime = this.lastSignalTime[signalKey] || 0;
-        if (Date.now() - lastTime < this.minSignalGap) continue;
+        if (Date.now() - lastTime < this.minSignalGap) {
+          const minsAgo = Math.round((Date.now() - lastTime) / 60000);
+          AutoTradeLog.add('skip', `${strat.name} ${CONFIG.symbols[sym]?.name}: signal gap (${minsAgo}m/16m)`);
+          continue;
+        }
         
         // SKIP if entry condition is expired (price moved past the setup)
         const symCandles = state.multiCandles[sym];
@@ -2963,20 +3106,33 @@ const AutoTrader = {
           const lastClose = symCandles[symCandles.length - 1].close;
           const prevClose = symCandles[symCandles.length - 2]?.close || lastClose;
           const dir = strat.signal.signal;
-          // LONG signal: price must still be below or near target (not already rallied past it)
-          if (dir === 'LONG' && strat.signal.target && lastClose > strat.signal.target) continue;
-          // SHORT signal: price must still be above or near target (not already dropped past it)
-          if (dir === 'SHORT' && strat.signal.target && lastClose < strat.signal.target) continue;
-          // Don't enter if price hasn't moved in our direction since last candle
-          if (dir === 'LONG' && prevClose > lastClose) continue;
-          if (dir === 'SHORT' && prevClose < lastClose) continue;
+          if (dir === 'LONG' && strat.signal.target && lastClose > strat.signal.target) {
+            AutoTradeLog.add('skip', `${strat.name} ${CONFIG.symbols[sym]?.name}: price above target (${lastClose.toFixed(2)} > ${strat.signal.target.toFixed(2)})`);
+            continue;
+          }
+          if (dir === 'SHORT' && strat.signal.target && lastClose < strat.signal.target) {
+            AutoTradeLog.add('skip', `${strat.name} ${CONFIG.symbols[sym]?.name}: price below target`);
+            continue;
+          }
+          if (dir === 'LONG' && prevClose > lastClose) {
+            AutoTradeLog.add('skip', `${strat.name} ${CONFIG.symbols[sym]?.name}: price dropping (not reverting)`);
+            continue;
+          }
+          if (dir === 'SHORT' && prevClose < lastClose) {
+            AutoTradeLog.add('skip', `${strat.name} ${CONFIG.symbols[sym]?.name}: price rising (not rejecting)`);
+            continue;
+          }
         }
         
-        // CORRELATION CHECK: TACO and FAFO are both fear-based LONG strategies
+        // CORRELATION CHECK
         const isFearBased = strat.name === 'TACO' || strat.name === 'FAFO';
         const hasFearBasedOpen = state.openPositions.some(p => p.strategy === 'TACO' || p.strategy === 'FAFO');
-        if (isFearBased && hasFearBasedOpen) continue;
+        if (isFearBased && hasFearBasedOpen) {
+          AutoTradeLog.add('skip', `${strat.name}: fear-based strategy already open`);
+          continue;
+        }
         
+        AutoTradeLog.add('signal', `📡 ${strat.name} ${CONFIG.symbols[sym]?.name}: ${strat.signal.signal} (${(strat.signal.confidence * 100).toFixed(0)}%) — ${strat.signal.reason}`);
         allSignals.push({ name: strat.name, symbol: sym, ...strat.signal });
       }
     }
@@ -2986,6 +3142,7 @@ const AutoTrader = {
     
     if (allSignals.length > 0) {
       const best = allSignals[0];
+      AutoTradeLog.add('enter', `🎯 ENTERING: ${best.signal} ${best.name} ${CONFIG.symbols[best.symbol]?.name} @ ${state.prices[best.symbol]?.price?.toFixed(2)}`);
       this.executeAutoTrade(best.name, best, best.symbol);
     }
   },
@@ -5033,8 +5190,12 @@ setInterval(fetchAutoTradeData, 120000);
 // Auto-trader check every 30 seconds
 setInterval(() => {
   AutoTrader.checkAndExecute();
+  updateAutoTraderStatus();
   SessionTracker.recordEquity(); // Track equity curve
 }, 30000);
+
+// Update indicator levels every 30 seconds
+setInterval(updateAutoTraderStatus, 30000);
 
 // Session tracker re-render every 60 seconds
 setInterval(() => {
