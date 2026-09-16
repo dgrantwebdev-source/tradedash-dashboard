@@ -854,7 +854,7 @@ body.player-expanded{padding-bottom:80px}
     <h2>Session Analytics & Performance</h2>
     <div>
       <button class="btn" onclick="SessionTracker.endSession()">End Current Session</button>
-      <button class="btn" onclick="SessionTracker.resetAll()">Reset All Data</button>
+      <button class="btn danger" onclick="SessionTracker.resetAll()">Clear Session Data</button>
       <button class="btn" onclick="SessionTracker.exportCSV()">Export CSV</button>
     </div>
   </div>
@@ -2763,11 +2763,12 @@ function exportTrades() {
 }
 
 function clearTrades() {
-  if (confirm('Clear all trades?')) {
-    state.trades = [];
-    localStorage.removeItem('trades');
-    updateUI();
-  }
+  if (!confirm('⚠️ CLEAR ALL TRADES?\n\nThis will remove:\n• All trade journal entries\n• All P&L history\n• All grades and performance data\n\nThis CANNOT be undone.')) return;
+  if (!confirm('Are you REALLY sure? Type OK to confirm deletion.')) return;
+  state.trades = [];
+  localStorage.removeItem('trades');
+  updateUI();
+  showAlert('All trades cleared.', 'warning');
 }
 
 function isNYSession() {
@@ -3380,7 +3381,8 @@ const SessionTracker = {
   },
   
   resetAll() {
-    if (!confirm('Reset ALL session data? This cannot be undone.')) return;
+    if (!confirm('⚠️ CLEAR ALL SESSION DATA?\n\nThis will remove:\n• All session trade history\n• All performance analytics\n• All equity curves\n\nThis CANNOT be undone.')) return;
+    if (!confirm('Are you REALLY sure? Type OK to confirm deletion.')) return;
     this.sessions = {};
     this.sessionBreakdowns = [];
     this.currentSessionId = null;
@@ -3388,7 +3390,7 @@ const SessionTracker = {
     localStorage.removeItem('sessionBreakdowns');
     this.init();
     this.renderAll();
-    showAlert('All session data reset.', 'warning');
+    showAlert('All session data cleared.', 'warning');
   },
   
   save() {
