@@ -1,1 +1,3 @@
 signal_date,strategy,direction,entry,target,stop,status
+2026-10-21,Gap Fill,long,5650.00,5665.00,5640.00,pending_next_day
+2026-10-21,ORB Breakout,short,5645.00,5630.00,5655.00,pending_next_day
