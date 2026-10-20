@@ -417,10 +417,15 @@ canvas{max-height:200px!important}}
 <!-- PAPER TRADING SECTION -->
 <div class="section" id="section-paper-trading">
     <div class="grid-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
-      <div class="card metric-card" style="padding:20px"><div class="metric-label">Portfolio Equity</div><div class="metric-value" id="ptEquity" style="color:#00ff88">$100,000</div><div style="font-size:11px;color:#666;margin-top:4px">Starting capital</div></div>
+      <div class="card metric-card" style="padding:20px"><div class="metric-label">Portfolio Equity</div><div class="metric-value" id="ptEquity" style="color:#00ff88">$100,000.00</div><div style="font-size:11px;color:#666;margin-top:4px">Starting capital</div></div>
       <div class="card metric-card" style="padding:20px"><div class="metric-label">Total P&L</div><div class="metric-value" id="ptPnl" style="color:#00ff88">$0.00</div><div style="font-size:11px;color:#666;margin-top:4px">Realized paper P&L</div></div>
       <div class="card metric-card" style="padding:20px"><div class="metric-label">Win Rate</div><div class="metric-value" id="ptWinRate" style="color:#00ff88">--</div><div style="font-size:11px;color:#666;margin-top:4px">Winning / total trades</div></div>
       <div class="card metric-card" style="padding:20px"><div class="metric-label">Total Trades</div><div class="metric-value" id="ptTotalTrades">0</div><div style="font-size:11px;color:#666;margin-top:4px">All paper trades</div></div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:11px;color:#666">Last updated: <span id="ptLastUpdated" style="color:#4a9eff">--</span></span>
+      <button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="renderPaperTrading()">Refresh</button>
     </div>
 
     <div class="card" style="padding:20px;margin-bottom:24px">
@@ -1057,17 +1062,22 @@ async function renderPaperTrading() {
   const wr = totalTrades ? ((wt / totalTrades) * 100).toFixed(1) : '--';
   winRateEl.textContent = wr === '--' ? '--' : wr + '%';
   winRateEl.style.color = (wr !== '--' && parseFloat(wr) >= 50) ? '#00ff88' : '#ffd700';
+  document.getElementById('ptLastUpdated').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+
+  const stratColor = (s) => s==='ORB Breakout'?'#4a9eff':s==='VWAP'?'#a855f7':s==='IB Breakout'?'#ffd700':s==='Gap Fill'?'#00ff88':'#666';
+  const fmtPx = (v) => v != null ? parseFloat(v).toFixed(2) : '';
+  const fmtUsd = (v) => { const n=parseFloat(v||0); return (n>=0?'+':'')+'$'+n.toFixed(2); };
 
   if (signals.length) {
     signalsBody.innerHTML = signals.map(s => `
       <tr>
         <td>${s.signal_date || ''}</td>
-        <td>${s.strategy || ''}</td>
+        <td><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(${stratColor(s.strategy||'')}=== '#4a9eff' ? '74,158,255,0.15' : stratColor(s.strategy||'')=== '#a855f7' ? '168,85,247,0.15' : stratColor(s.strategy||'')=== '#ffd700' ? '255,215,0,0.15' : '0,255,136,0.15');color:${stratColor(s.strategy||'')}">${s.strategy || ''}</span></td>
         <td>${s.direction || ''}</td>
-        <td>${s.entry != null ? s.entry : ''}</td>
-        <td>${s.target != null ? s.target : ''}</td>
-        <td>${s.stop != null ? s.stop : ''}</td>
-        <td>${s.status || 'pending_next_day'}</td>
+        <td>${fmtPx(s.entry)}</td>
+        <td>${fmtPx(s.target)}</td>
+        <td>${fmtPx(s.stop)}</td>
+        <td><span style="font-size:11px">${s.status || 'pending_next_day'}</span></td>
       </tr>
     `).join('');
   } else {
@@ -1078,12 +1088,12 @@ async function renderPaperTrading() {
     tradesBody.innerHTML = trades.map(t => `
       <tr>
         <td>${t.date || ''}</td>
-        <td>${t.strategy || ''}</td>
+        <td><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(${stratColor(t.strategy||'')}=== '#4a9eff' ? '74,158,255,0.15' : stratColor(t.strategy||'')=== '#a855f7' ? '168,85,247,0.15' : stratColor(t.strategy||'')=== '#ffd700' ? '255,215,0,0.15' : '0,255,136,0.15');color:${stratColor(t.strategy||'')}">${t.strategy || ''}</span></td>
         <td>${t.direction || ''}</td>
-        <td>${t.entry != null ? t.entry : ''}</td>
-        <td>${t.exit != null ? t.exit : ''}</td>
-        <td style="color:${(t.pnl_usd || 0) >= 0 ? '#00ff88' : '#ff4444'}">${(t.pnl_usd || 0) >= 0 ? '+' : ''}$${t.pnl_usd || 0}</td>
-        <td>${t.status || ''}</td>
+        <td>${fmtPx(t.entry)}</td>
+        <td>${fmtPx(t.exit)}</td>
+        <td style="color:${(t.pnl_usd || 0) >= 0 ? '#00ff88' : '#ff4444'};font-weight:600">${fmtUsd(t.pnl_usd)}</td>
+        <td><span style="font-size:11px">${t.status || ''}</span></td>
       </tr>
     `).join('');
   } else {
@@ -1092,9 +1102,10 @@ async function renderPaperTrading() {
 
   const curve = portfolio.equity_curve || [];
   if (curve.length) {
+    const validCurve = curve.filter(c => c.date);
     getOrCreateChart('ptEquityChart', {
       type: 'line',
-      data: { labels: curve.map(c => c.date || ''), datasets: [{ label: 'Equity ($)', data: curve.map(c => c.equity), borderColor: '#00ff88', backgroundColor: 'rgba(0,255,136,0.1)', fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 }] },
+      data: { labels: validCurve.map(c => c.date), datasets: [{ label: 'Equity ($)', data: validCurve.map(c => c.equity), borderColor: '#00ff88', backgroundColor: 'rgba(0,255,136,0.1)', fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 }] },
       options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: false } } }
     });
   }
