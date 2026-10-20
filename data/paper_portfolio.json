@@ -1,0 +1,14 @@
+{
+  "initial_capital": 100000,
+  "cash": 100000,
+  "equity": 100000,
+  "daily_pnl": [],
+  "equity_curve": [
+    {"date": null, "equity": 100000}
+  ],
+  "total_trades": 0,
+  "winning_trades": 0,
+  "losing_trades": 0,
+  "total_pnl_usd": 0.0,
+  "created_at": "2026-10-20T00:00:00Z"
+}
