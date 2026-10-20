@@ -1,0 +1,43 @@
+name: Paper Trading
+
+on:
+  schedule:
+    # Run after market close (4:15pm ET = 20:15 UTC) on weekdays
+    # Evaluates today's signals against actual price action and generates
+    # signals for the next trading day.
+    - cron: '15 20 * * 1-5'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  paper-trade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages          # data/ and the dashboard live on gh-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install yfinance pandas numpy
+
+      - name: Run paper trading engine
+        run: python scripts/paper_trade.py
+
+      - name: Commit and push paper trading data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update paper trading data $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push
+          fi

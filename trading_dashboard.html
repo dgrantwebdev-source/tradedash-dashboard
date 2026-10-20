@@ -197,6 +197,10 @@ canvas{max-height:200px!important}}
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       <span class="nav-label">Backtest</span>
     </div>
+    <div class="nav-item" data-section="paper-trading" tabindex="0" role="button" aria-label="Paper Trading">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+      <span class="nav-label">Paper Trading</span>
+    </div>
   </div>
   <div style="padding:12px 8px;margin-top:auto;border-top:1px solid #1e1e2e">
     <div class="nav-item" id="themeToggle" tabindex="0" role="button" aria-label="Toggle theme">
@@ -410,6 +414,33 @@ canvas{max-height:200px!important}}
     </div>
   </div>
 </div>
+<!-- PAPER TRADING SECTION -->
+<div class="section" id="section-paper-trading">
+    <div class="grid-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+      <div class="card metric-card" style="padding:20px"><div class="metric-label">Portfolio Equity</div><div class="metric-value" id="ptEquity" style="color:#00ff88">$100,000</div><div style="font-size:11px;color:#666;margin-top:4px">Starting capital</div></div>
+      <div class="card metric-card" style="padding:20px"><div class="metric-label">Total P&L</div><div class="metric-value" id="ptPnl" style="color:#00ff88">$0.00</div><div style="font-size:11px;color:#666;margin-top:4px">Realized paper P&L</div></div>
+      <div class="card metric-card" style="padding:20px"><div class="metric-label">Win Rate</div><div class="metric-value" id="ptWinRate" style="color:#00ff88">--</div><div style="font-size:11px;color:#666;margin-top:4px">Winning / total trades</div></div>
+      <div class="card metric-card" style="padding:20px"><div class="metric-label">Total Trades</div><div class="metric-value" id="ptTotalTrades">0</div><div style="font-size:11px;color:#666;margin-top:4px">All paper trades</div></div>
+    </div>
+
+    <div class="card" style="padding:20px;margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="font-size:14px;font-weight:600">Next Day Signals</h3>
+        <div style="display:flex;gap:8px"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('paperSignalsTable')">CSV</button></div>
+      </div>
+      <div class="table-container"><table id="paperSignalsTable"><thead><tr><th>Signal Date</th><th>Strategy</th><th>Direction</th><th>Entry</th><th>Target</th><th>Stop</th><th>Status</th></tr></thead><tbody id="paperSignalsBody"><tr><td colspan="7" style="text-align:center;color:#666;padding:20px">Loading signals...</td></tr></tbody></table></div>
+    </div>
+
+    <div class="card" style="padding:20px;margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Paper Trade History</h3><div style="display:flex;gap:8px"><input class="input" placeholder="Search trades..." style="width:200px" id="ptTradeSearch" oninput="filterPTTrades()" aria-label="Search paper trades"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('paperTradesTable')">CSV</button></div></div>
+      <div class="table-container"><table id="paperTradesTable"><thead><tr><th onclick="sortTable('paperTradesTable',0)">Date</th><th onclick="sortTable('paperTradesTable',1)">Strategy</th><th onclick="sortTable('paperTradesTable',2)">Direction</th><th onclick="sortTable('paperTradesTable',3)">Entry</th><th onclick="sortTable('paperTradesTable',4)">Exit</th><th onclick="sortTable('paperTradesTable',5)">P&L ($)</th><th onclick="sortTable('paperTradesTable',6)">Status</th></tr></thead><tbody id="paperTradesBody"><tr><td colspan="7" style="text-align:center;color:#666;padding:20px">Loading trades...</td></tr></tbody></table></div>
+    </div>
+
+    <div class="card" style="padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Equity Curve</h3><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportChart('ptEquityChart')">Export PNG</button></div>
+      <canvas id="ptEquityChart" height="200"></canvas>
+    </div>
+  </div>
 <!-- MODALS -->
 <div class="modal-overlay" id="newTradeModal" style="display:none" onclick="if(event.target===this)closeModal('newTradeModal')" role="dialog" aria-modal="true" aria-label="New Trade">
   <div class="modal"><h3 style="font-size:16px;font-weight:600;margin-bottom:16px">New Trade</h3><p style="font-size:13px;color:#666;margin-bottom:16px">Quick entry form. Full journal available in the Journal tab.</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeModal('newTradeModal')">Cancel</button><button class="btn btn-primary" onclick="closeModal('newTradeModal');navigateTo('journal')">Open Journal</button></div></div>
@@ -975,10 +1006,124 @@ function runBacktest() {
   },200);
 }
 // ============================================================
+// PAPER TRADING
+// ============================================================
+let ptTrades = [];
+
+async function renderPaperTrading() {
+  const equityEl = document.getElementById('ptEquity');
+  const pnlEl = document.getElementById('ptPnl');
+  const winRateEl = document.getElementById('ptWinRate');
+  const totalEl = document.getElementById('ptTotalTrades');
+  const signalsBody = document.getElementById('paperSignalsBody');
+  const tradesBody = document.getElementById('paperTradesBody');
+
+  let portfolio = { equity: 100000, total_pnl_usd: 0, winning_trades: 0, losing_trades: 0, total_trades: 0, equity_curve: [] };
+  let signals = [];
+  let trades = [];
+
+  try {
+    const pfResp = await fetch('data/paper_portfolio.json?t=' + Date.now());
+    if (pfResp.ok) portfolio = await pfResp.json();
+  } catch (e) { console.log('No portfolio file yet'); }
+
+  try {
+    const sigResp = await fetch('data/signals_next_day.csv?t=' + Date.now());
+    if (sigResp.ok) {
+      const text = await sigResp.text();
+      signals = parseCSV(text);
+    }
+  } catch (e) { console.log('No signals file yet'); }
+
+  try {
+    const trResp = await fetch('data/paper_trades.csv?t=' + Date.now());
+    if (trResp.ok) {
+      const text = await trResp.text();
+      trades = parseCSV(text);
+      ptTrades = trades;
+    }
+  } catch (e) { console.log('No trades file yet'); }
+
+  equityEl.textContent = '$' + (portfolio.equity || 100000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const totalPnl = portfolio.total_pnl_usd || 0;
+  pnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + Math.abs(totalPnl).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  pnlEl.style.color = totalPnl >= 0 ? '#00ff88' : '#ff4444';
+  const wt = portfolio.winning_trades || 0;
+  const lt = portfolio.losing_trades || 0;
+  const totalTrades = portfolio.total_trades || (wt + lt);
+  totalEl.textContent = totalTrades;
+  const wr = totalTrades ? ((wt / totalTrades) * 100).toFixed(1) : '--';
+  winRateEl.textContent = wr === '--' ? '--' : wr + '%';
+  winRateEl.style.color = (wr !== '--' && parseFloat(wr) >= 50) ? '#00ff88' : '#ffd700';
+
+  if (signals.length) {
+    signalsBody.innerHTML = signals.map(s => `
+      <tr>
+        <td>${s.signal_date || ''}</td>
+        <td>${s.strategy || ''}</td>
+        <td>${s.direction || ''}</td>
+        <td>${s.entry != null ? s.entry : ''}</td>
+        <td>${s.target != null ? s.target : ''}</td>
+        <td>${s.stop != null ? s.stop : ''}</td>
+        <td>${s.status || 'pending_next_day'}</td>
+      </tr>
+    `).join('');
+  } else {
+    signalsBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#666;padding:20px">No signals for next trading day.</td></tr>';
+  }
+
+  if (trades.length) {
+    tradesBody.innerHTML = trades.map(t => `
+      <tr>
+        <td>${t.date || ''}</td>
+        <td>${t.strategy || ''}</td>
+        <td>${t.direction || ''}</td>
+        <td>${t.entry != null ? t.entry : ''}</td>
+        <td>${t.exit != null ? t.exit : ''}</td>
+        <td style="color:${(t.pnl_usd || 0) >= 0 ? '#00ff88' : '#ff4444'}">${(t.pnl_usd || 0) >= 0 ? '+' : ''}$${t.pnl_usd || 0}</td>
+        <td>${t.status || ''}</td>
+      </tr>
+    `).join('');
+  } else {
+    tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#666;padding:20px">No paper trades recorded yet.</td></tr>';
+  }
+
+  const curve = portfolio.equity_curve || [];
+  if (curve.length) {
+    getOrCreateChart('ptEquityChart', {
+      type: 'line',
+      data: { labels: curve.map(c => c.date || ''), datasets: [{ label: 'Equity ($)', data: curve.map(c => c.equity), borderColor: '#00ff88', backgroundColor: 'rgba(0,255,136,0.1)', fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 }] },
+      options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: false } } }
+    });
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const vals = line.split(',');
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = vals[i] ? vals[i].trim() : ''; });
+    return obj;
+  });
+}
+
+function filterPTTrades() {
+  const q = document.getElementById('ptTradeSearch').value.toLowerCase();
+  const rows = document.getElementById('paperTradesBody').querySelectorAll('tr');
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+// ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded',()=>{
   renderDashboard();renderStrategies();renderJournal();renderRules();renderChecklist();renderPortfolioComparison();selectPortfolio('conservative');
+  renderPaperTrading();
   updateSessionTimer();
   // Auto-calc journal P&L
   ['journalEntry','journalExit','journalSize'].forEach(id=>{
