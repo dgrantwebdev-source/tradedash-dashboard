@@ -310,7 +310,14 @@ canvas{max-height:200px!important}}
   </div>
   <!-- STRATEGY COMPARISON -->
   <div class="section" id="section-strategies">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="width:28px;height:28px;background:linear-gradient(135deg,#4a9eff,#00ff88);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0a0a0f">S</span>
+        <h2 style="font-size:18px;font-weight:700;margin:0;color:#e0e0e0">Strategy Comparison</h2>
+      </div>
+      <p style="font-size:12px;color:#888;margin:0">Compare win rate, profit factor, and Sharpe across all strategies.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
       <select class="input" id="strategyFilter" onchange="filterStrategies()" style="min-width:180px"><option value="all">All Strategies</option><option value="ORB">ORB Breakout</option><option value="VWAP">VWAP Reversion</option><option value="PDH">PDH/PDL Breakout</option><option value="Gap">Gap Fill</option></select>
       <div class="toggle" id="absPctToggle" onclick="toggleAbsPct()" role="switch" aria-label="Toggle absolute/percentage" tabindex="0"></div>
       <span style="font-size:12px;color:#666">Percentage</span>
@@ -355,7 +362,14 @@ canvas{max-height:200px!important}}
   </div>
   <!-- PORTFOLIO ANALYZER -->
   <div class="section" id="section-portfolio">
-    <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="width:28px;height:28px;background:linear-gradient(135deg,#4a9eff,#00ff88);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0a0a0f">P</span>
+        <h2 style="font-size:18px;font-weight:700;margin:0;color:#e0e0e0">Portfolio Analyzer</h2>
+      </div>
+      <p style="font-size:12px;color:#888;margin:0">Model allocations, drawdown, and Monte Carlo simulations.</p>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       <div class="tab active" data-portfolio="conservative" onclick="selectPortfolio('conservative')">Conservative</div>
       <div class="tab" data-portfolio="aggressive" onclick="selectPortfolio('aggressive')">Aggressive</div>
       <div class="tab" data-portfolio="diversified" onclick="selectPortfolio('diversified')">Diversified</div>
@@ -378,6 +392,13 @@ canvas{max-height:200px!important}}
   </div>
   <!-- TRADE JOURNAL -->
   <div class="section" id="section-journal">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="width:28px;height:28px;background:linear-gradient(135deg,#4a9eff,#00ff88);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0a0a0f">J</span>
+        <h2 style="font-size:18px;font-weight:700;margin:0;color:#e0e0e0">Trade Journal</h2>
+      </div>
+      <p style="font-size:12px;color:#888;margin:0">Log trades, track win rate, avg R:R, and streaks.</p>
+    </div>
     <div class="grid-2" style="display:grid;grid-template-columns:1fr 2fr;gap:24px">
       <div>
         <div class="card" style="padding:20px;margin-bottom:16px">
