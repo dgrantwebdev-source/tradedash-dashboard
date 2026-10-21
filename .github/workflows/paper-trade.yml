@@ -14,8 +14,10 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        # Checkout master (default branch) so scripts/paper_trade.py is available.
+        # Data outputs are committed back to master; the dashboard reads them
+        # from raw.githubusercontent.com/master/data/...
         with:
-          ref: gh-pages          # data/ and the dashboard live on gh-pages
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
