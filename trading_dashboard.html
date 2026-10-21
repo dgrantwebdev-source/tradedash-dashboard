@@ -17,7 +17,7 @@ tailwind.config = {
 <style>
 *,*::before,*::after{box-sizing:border-box}
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0a0f;color:#e0e0e0;margin:0;overflow-x:hidden}
-::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#0a0a0f}::-webkit-scrollbar-thumb{background:#2a2a3a;border-radius:3px}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:#0a0a0f}::-webkit-scrollbar-thumb{background:#2a2a3a;border-radius:5px}::-webkit-scrollbar-thumb:hover{background:#3a3a4a}
 .glow-green{box-shadow:0 0 20px rgba(0,255,136,0.15)}.glow-red{box-shadow:0 0 20px rgba(255,68,68,0.15)}.glow-blue{box-shadow:0 0 20px rgba(74,158,255,0.15)}
 .card{background:#12121a;border:1px solid #1e1e2e;border-radius:12px;transition:all 0.2s ease}.card:hover{border-color:#2a2a3e;transform:translateY(-1px)}
 .sidebar{width:240px;min-height:100vh;background:#0d0d14;border-right:1px solid #1e1e2e;transition:width 0.3s ease;position:fixed;top:0;left:0;z-index:40}
@@ -299,12 +299,12 @@ canvas{max-height:200px!important}}
       <div class="card metric-card"><div class="metric-label">Sharpe Ratio</div><div class="metric-value">1.42</div><div style="font-size:12px;color:#666;margin-top:4px">Risk-adjusted return</div></div>
     </div>
     <div class="grid-2" style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px">
-      <div class="card" style="padding:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Equity Curve</h3><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportChart('equityChart')">Export PNG</button></div><canvas id="equityChart" height="200"></canvas></div>
+      <div class="card" style="padding:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Equity Curve</h3><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportChart('equityChart')">Export PNG</button></div><canvas id="equityChart" height="200"></canvas></div>
       <div class="card" style="padding:20px"><h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Monthly Returns</h3><div id="monthlyHeatmap" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div></div>
     </div>
-    <div class="card" style="padding:20px;margin-bottom:24px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Daily P&L</h3><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportChart('dailyPnlChart')">Export PNG</button></div><canvas id="dailyPnlChart" height="120"></canvas></div>
+    <div class="card" style="padding:20px;margin-bottom:24px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Daily P&L</h3><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportChart('dailyPnlChart')">Export PNG</button></div><canvas id="dailyPnlChart" height="120"></canvas></div>
     <div class="card" style="padding:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Recent Trades</h3><div style="display:flex;gap:8px"><input class="input" placeholder="Search trades..." style="width:200px" id="tradeSearch" oninput="filterTrades()" aria-label="Search trades"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('recentTradesTable')">CSV</button></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Recent Trades</h3><div style="display:flex;gap:8px"><input class="input" placeholder="Search trades..." style="width:200px" id="tradeSearch" oninput="filterTrades()" aria-label="Search trades"><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportTableCSV('recentTradesTable')">CSV</button></div></div>
       <div class="table-container"><table id="recentTradesTable"><thead><tr><th onclick="sortTable('recentTradesTable',0)">Date</th><th onclick="sortTable('recentTradesTable',1)">Strategy</th><th onclick="sortTable('recentTradesTable',2)">Entry</th><th onclick="sortTable('recentTradesTable',3)">Exit</th><th onclick="sortTable('recentTradesTable',4)">Size</th><th onclick="sortTable('recentTradesTable',5)">P&L</th></tr></thead><tbody id="recentTradesBody"></tbody></table></div>
     </div>
   </div>
@@ -407,7 +407,7 @@ canvas{max-height:200px!important}}
       </div>
       <div>
         <div class="card" style="padding:20px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Trade Journal</h3><div style="display:flex;gap:8px"><select class="input" id="journalFilterStrategy" onchange="filterJournal()" style="min-width:120px"><option value="all">All Strategies</option><option value="ORB">ORB</option><option value="VWAP">VWAP</option><option value="PDH">PDH/PDL</option><option value="Gap">Gap Fill</option></select><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('journalTable')">CSV</button></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Trade Journal</h3><div style="display:flex;gap:8px"><select class="input" id="journalFilterStrategy" onchange="filterJournal()" style="min-width:120px"><option value="all">All Strategies</option><option value="ORB">ORB</option><option value="VWAP">VWAP</option><option value="PDH">PDH/PDL</option><option value="Gap">Gap Fill</option></select><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportTableCSV('journalTable')">CSV</button></div></div>
           <div class="table-container"><table id="journalTable"><thead><tr><th onclick="sortTable('journalTable',0)">Date</th><th onclick="sortTable('journalTable',1)">Strategy</th><th onclick="sortTable('journalTable',2)">Entry</th><th onclick="sortTable('journalTable',3)">Exit</th><th onclick="sortTable('journalTable',4)">Size</th><th onclick="sortTable('journalTable',5)">P&L</th><th>Notes</th><th></th></tr></thead><tbody id="journalBody"></tbody></table></div>
         </div>
       </div>
@@ -517,19 +517,19 @@ canvas{max-height:200px!important}}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h3 style="font-size:14px;font-weight:600;margin:0">Next Day Signals</h3>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('paperSignalsTable')">CSV</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportTableCSV('paperSignalsTable')">CSV</button>
         </div>
       </div>
       <div class="table-container"><table id="paperSignalsTable"><thead><tr><th>Signal Date</th><th>Strategy</th><th>Direction</th><th>Entry</th><th>Target</th><th>Stop</th><th>Status</th></tr></thead><tbody id="paperSignalsBody"><tr><td colspan="7" style="text-align:center;color:#666;padding:20px">Loading signals...</td></tr></tbody></table></div>
     </div>
 
     <div class="card" style="padding:20px;margin-bottom:24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin:0">Paper Trade History</h3><div style="display:flex;gap:8px"><input class="input" placeholder="Search trades..." style="width:200px" id="ptTradeSearch" oninput="filterPTTrades()" aria-label="Search paper trades"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('paperTradesTable')">CSV</button></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin:0">Paper Trade History</h3><div style="display:flex;gap:8px"><input class="input" placeholder="Search trades..." style="width:200px" id="ptTradeSearch" oninput="filterPTTrades()" aria-label="Search paper trades"><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportTableCSV('paperTradesTable')">CSV</button></div></div>
       <div class="table-container"><table id="paperTradesTable"><thead><tr><th onclick="sortTable('paperTradesTable',0)">Date</th><th onclick="sortTable('paperTradesTable',1)">Strategy</th><th onclick="sortTable('paperTradesTable',2)">Direction</th><th onclick="sortTable('paperTradesTable',3)">Entry</th><th onclick="sortTable('paperTradesTable',4)">Exit</th><th onclick="sortTable('paperTradesTable',5)">P&L ($)</th><th onclick="sortTable('paperTradesTable',6)">Status</th></tr></thead><tbody id="paperTradesBody"><tr><td colspan="7" style="text-align:center;color:#666;padding:20px">Loading trades...</td></tr></tbody></table></div>
     </div>
 
     <div class="card" style="padding:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin:0">Equity Curve</h3><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportChart('ptEquityChart')">Export PNG</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin:0">Equity Curve</h3><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportChart('ptEquityChart')">Export PNG</button></div>
       <canvas id="ptEquityChart" height="200"></canvas>
     </div>
     <div class="pt-loading" id="ptLoadingOverlay" style="display:none">
