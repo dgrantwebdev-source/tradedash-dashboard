@@ -34,6 +34,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0a0f;color:#e0e0e0;m
 .table-container{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:10px 12px;color:#666;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #1e1e2e;cursor:pointer;user-select:none}
 th:hover{color:#4a9eff}td{padding:10px 12px;border-bottom:1px solid #14141e}tr:hover td{background:#1a1a25}
+tr:nth-child(even) td{background:#0d0d14}
+.table-container table thead th{background:#0a0a0f;position:sticky;top:0;z-index:2}
 .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s ease;border:none;display:inline-flex;align-items:center;gap:6px}
 .btn-primary{background:#4a9eff;color:#fff}.btn-primary:hover{background:#3a8eef}
 .btn-danger{background:#ff4444;color:#fff}.btn-danger:hover{background:#ee3333}
@@ -416,33 +418,64 @@ canvas{max-height:200px!important}}
 </div>
 <!-- PAPER TRADING SECTION -->
 <div class="section" id="section-paper-trading">
-    <div class="grid-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
-      <div class="card metric-card" style="padding:20px"><div class="metric-label">Portfolio Equity</div><div class="metric-value" id="ptEquity" style="color:#00ff88">$100,000.00</div><div style="font-size:11px;color:#666;margin-top:4px">Starting capital</div></div>
-      <div class="card metric-card" style="padding:20px"><div class="metric-label">Total P&L</div><div class="metric-value" id="ptPnl" style="color:#00ff88">$0.00</div><div style="font-size:11px;color:#666;margin-top:4px">Realized paper P&L</div></div>
-      <div class="card metric-card" style="padding:20px"><div class="metric-label">Win Rate</div><div class="metric-value" id="ptWinRate" style="color:#00ff88">--</div><div style="font-size:11px;color:#666;margin-top:4px">Winning / total trades</div></div>
-      <div class="card metric-card" style="padding:20px"><div class="metric-label">Total Trades</div><div class="metric-value" id="ptTotalTrades">0</div><div style="font-size:11px;color:#666;margin-top:4px">All paper trades</div></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:28px;height:28px;background:linear-gradient(135deg,#4a9eff,#00ff88);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0a0a0f">P</span>
+          <h2 style="font-size:18px;font-weight:700;margin:0;color:#e0e0e0">Paper Trading</h2>
+        </div>
+        <p style="font-size:12px;color:#888;margin:0">Live paper trading for ES=F futures. 4 strategies, 1% risk per trade.</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:#666">Last updated: <span id="ptLastUpdated" style="color:#4a9eff">--</span></span>
+        <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="renderPaperTrading()">Refresh</button>
+      </div>
     </div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <span style="font-size:11px;color:#666">Last updated: <span id="ptLastUpdated" style="color:#4a9eff">--</span></span>
-      <button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="renderPaperTrading()">Refresh</button>
+    <div class="grid-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+      <div class="card metric-card" style="padding:20px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-10px;right:-10px;width:60px;height:60px;background:rgba(0,255,136,0.08);border-radius:50%"></div>
+        <div class="metric-label" style="font-size:10px">Portfolio Equity</div>
+        <div class="metric-value" id="ptEquity" style="color:#00ff88">$100,000.00</div>
+        <div style="font-size:11px;color:#00ff88;margin-top:4px">Starting capital: $100,000</div>
+      </div>
+      <div class="card metric-card" style="padding:20px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-10px;right:-10px;width:60px;height:60px;background:rgba(74,158,255,0.08);border-radius:50%"></div>
+        <div class="metric-label" style="font-size:10px">Total P&L</div>
+        <div class="metric-value" id="ptPnl" style="color:#00ff88">$0.00</div>
+        <div style="font-size:11px;color:#666;margin-top:4px">Realized paper P&L</div>
+      </div>
+      <div class="card metric-card" style="padding:20px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-10px;right:-10px;width:60px;height:60px;background:rgba(255,215,0,0.08);border-radius:50%"></div>
+        <div class="metric-label" style="font-size:10px">Win Rate</div>
+        <div class="metric-value" id="ptWinRate" style="color:#ffd700">--</div>
+        <div style="font-size:11px;color:#666;margin-top:4px">Winning / total trades</div>
+      </div>
+      <div class="card metric-card" style="padding:20px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-10px;right:-10px;width:60px;height:60px;background:rgba(168,85,247,0.08);border-radius:50%"></div>
+        <div class="metric-label" style="font-size:10px">Total Trades</div>
+        <div class="metric-value" id="ptTotalTrades" style="color:#e0e0e0">0</div>
+        <div style="font-size:11px;color:#666;margin-top:4px">All paper trades</div>
+      </div>
     </div>
 
     <div class="card" style="padding:20px;margin-bottom:24px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h3 style="font-size:14px;font-weight:600">Next Day Signals</h3>
-        <div style="display:flex;gap:8px"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('paperSignalsTable')">CSV</button></div>
+        <h3 style="font-size:14px;font-weight:600;margin:0">Next Day Signals</h3>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('paperSignalsTable')">CSV</button>
+        </div>
       </div>
       <div class="table-container"><table id="paperSignalsTable"><thead><tr><th>Signal Date</th><th>Strategy</th><th>Direction</th><th>Entry</th><th>Target</th><th>Stop</th><th>Status</th></tr></thead><tbody id="paperSignalsBody"><tr><td colspan="7" style="text-align:center;color:#666;padding:20px">Loading signals...</td></tr></tbody></table></div>
     </div>
 
     <div class="card" style="padding:20px;margin-bottom:24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Paper Trade History</h3><div style="display:flex;gap:8px"><input class="input" placeholder="Search trades..." style="width:200px" id="ptTradeSearch" oninput="filterPTTrades()" aria-label="Search paper trades"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('paperTradesTable')">CSV</button></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin:0">Paper Trade History</h3><div style="display:flex;gap:8px"><input class="input" placeholder="Search trades..." style="width:200px" id="ptTradeSearch" oninput="filterPTTrades()" aria-label="Search paper trades"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('paperTradesTable')">CSV</button></div></div>
       <div class="table-container"><table id="paperTradesTable"><thead><tr><th onclick="sortTable('paperTradesTable',0)">Date</th><th onclick="sortTable('paperTradesTable',1)">Strategy</th><th onclick="sortTable('paperTradesTable',2)">Direction</th><th onclick="sortTable('paperTradesTable',3)">Entry</th><th onclick="sortTable('paperTradesTable',4)">Exit</th><th onclick="sortTable('paperTradesTable',5)">P&L ($)</th><th onclick="sortTable('paperTradesTable',6)">Status</th></tr></thead><tbody id="paperTradesBody"><tr><td colspan="7" style="text-align:center;color:#666;padding:20px">Loading trades...</td></tr></tbody></table></div>
     </div>
 
     <div class="card" style="padding:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Equity Curve</h3><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportChart('ptEquityChart')">Export PNG</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin:0">Equity Curve</h3><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportChart('ptEquityChart')">Export PNG</button></div>
       <canvas id="ptEquityChart" height="200"></canvas>
     </div>
   </div>
@@ -1065,6 +1098,24 @@ async function renderPaperTrading() {
   document.getElementById('ptLastUpdated').textContent = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
   const stratColor = (s) => s==='ORB Breakout'?'#4a9eff':s==='VWAP'?'#a855f7':s==='IB Breakout'?'#ffd700':s==='Gap Fill'?'#00ff88':'#666';
+  const stratBadge = (s) => {
+    const c = stratColor(s||'');
+    const rgb = c==='#4a9eff'?'74,158,255':c==='#a855f7'?'168,85,247':c==='#ffd700'?'255,215,0':'0,255,136';
+    return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(${rgb},0.15);color:${c};border:1px solid rgba(${rgb},0.3)">${s||''}</span>`;
+  };
+  const dirBadge = (d) => {
+    const isLong = (d||'').toLowerCase()==='long';
+    return `<span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(${isLong?'0,255,136':'255,68,68'},0.15);color:${isLong?'#00ff88':'#ff4444'}">${d||''}</span>`;
+  };
+  const statusBadge = (st) => {
+    const s=(st||'').toLowerCase();
+    let rgb='255,215,0', c='#ffd700';
+    if(s==='target'){rgb='0,255,136';c='#00ff88'}
+    else if(s==='stopped'){rgb='255,68,68';c='#ff4444'}
+    else if(s==='eod'){rgb='74,158,255';c='#4a9eff'}
+    else if(s==='pending_next_day'){rgb='168,85,247';c='#a855f7'}
+    return `<span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(${rgb},0.15);color:${c}">${st||''}</span>`;
+  };
   const fmtPx = (v) => v != null ? parseFloat(v).toFixed(2) : '';
   const fmtUsd = (v) => { const n=parseFloat(v||0); return (n>=0?'+':'')+'$'+n.toFixed(2); };
 
@@ -1072,12 +1123,12 @@ async function renderPaperTrading() {
     signalsBody.innerHTML = signals.map(s => `
       <tr>
         <td>${s.signal_date || ''}</td>
-        <td><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(${stratColor(s.strategy||'')}=== '#4a9eff' ? '74,158,255,0.15' : stratColor(s.strategy||'')=== '#a855f7' ? '168,85,247,0.15' : stratColor(s.strategy||'')=== '#ffd700' ? '255,215,0,0.15' : '0,255,136,0.15');color:${stratColor(s.strategy||'')}">${s.strategy || ''}</span></td>
-        <td>${s.direction || ''}</td>
+        <td>${stratBadge(s.strategy)}</td>
+        <td>${dirBadge(s.direction)}</td>
         <td>${fmtPx(s.entry)}</td>
         <td>${fmtPx(s.target)}</td>
         <td>${fmtPx(s.stop)}</td>
-        <td><span style="font-size:11px">${s.status || 'pending_next_day'}</span></td>
+        <td>${statusBadge(s.status)}</td>
       </tr>
     `).join('');
   } else {
@@ -1088,12 +1139,12 @@ async function renderPaperTrading() {
     tradesBody.innerHTML = trades.map(t => `
       <tr>
         <td>${t.date || ''}</td>
-        <td><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(${stratColor(t.strategy||'')}=== '#4a9eff' ? '74,158,255,0.15' : stratColor(t.strategy||'')=== '#a855f7' ? '168,85,247,0.15' : stratColor(t.strategy||'')=== '#ffd700' ? '255,215,0,0.15' : '0,255,136,0.15');color:${stratColor(t.strategy||'')}">${t.strategy || ''}</span></td>
-        <td>${t.direction || ''}</td>
+        <td>${stratBadge(t.strategy)}</td>
+        <td>${dirBadge(t.direction)}</td>
         <td>${fmtPx(t.entry)}</td>
         <td>${fmtPx(t.exit)}</td>
         <td style="color:${(t.pnl_usd || 0) >= 0 ? '#00ff88' : '#ff4444'};font-weight:600">${fmtUsd(t.pnl_usd)}</td>
-        <td><span style="font-size:11px">${t.status || ''}</span></td>
+        <td>${statusBadge(t.status)}</td>
       </tr>
     `).join('');
   } else {
@@ -1102,7 +1153,8 @@ async function renderPaperTrading() {
 
   const curve = portfolio.equity_curve || [];
   if (curve.length) {
-    const validCurve = curve.filter(c => c.date);
+    const validCurve = curve.filter(c => c.date)
+      .sort((a,b) => new Date(a.date) - new Date(b.date));
     getOrCreateChart('ptEquityChart', {
       type: 'line',
       data: { labels: validCurve.map(c => c.date), datasets: [{ label: 'Equity ($)', data: validCurve.map(c => c.equity), borderColor: '#00ff88', backgroundColor: 'rgba(0,255,136,0.1)', fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 }] },
