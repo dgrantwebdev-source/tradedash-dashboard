@@ -17,7 +17,7 @@ tailwind.config = {
 <style>
 *,*::before,*::after{box-sizing:border-box}
 body{font-family:'Inter',system-ui,sans-serif;background:#0a0a0f;color:#e0e0e0;margin:0;overflow-x:hidden}
-::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#0a0a0f}::-webkit-scrollbar-thumb{background:#2a2a3a;border-radius:3px}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:#0a0a0f}::-webkit-scrollbar-thumb{background:#2a2a3a;border-radius:5px}::-webkit-scrollbar-thumb:hover{background:#3a3a4a}
 .glow-green{box-shadow:0 0 20px rgba(0,255,136,0.15)}.glow-red{box-shadow:0 0 20px rgba(255,68,68,0.15)}.glow-blue{box-shadow:0 0 20px rgba(74,158,255,0.15)}
 .card{background:#12121a;border:1px solid #1e1e2e;border-radius:12px;transition:all 0.2s ease}.card:hover{border-color:#2a2a3e;transform:translateY(-1px)}
 .sidebar{width:240px;min-height:100vh;background:#0d0d14;border-right:1px solid #1e1e2e;transition:width 0.3s ease;position:fixed;top:0;left:0;z-index:40}
@@ -28,14 +28,17 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0a0f;color:#e0e0e0;m
 .nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:8px;cursor:pointer;transition:all 0.15s ease;color:#888;font-size:14px;font-weight:500}
 .nav-item:hover{background:#1a1a25;color:#e0e0e0}.nav-item.active{background:rgba(74,158,255,0.1);color:#4a9eff}
 .nav-item svg{width:20px;height:20px;flex-shrink:0}
-.metric-card{padding:20px}.metric-value{font-size:28px;font-weight:700;line-height:1.2}.metric-label{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
+.metric-card{padding:20px}.metric-value{font-size:28px;font-weight:700;line-height:1.2}.metric-label{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
 .section{display:none}.section.active{display:block;animation:fadeIn 0.2s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.table-container{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;padding:10px 12px;color:#666;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #1e1e2e;cursor:pointer;user-select:none}
-th:hover{color:#4a9eff}td{padding:10px 12px;border-bottom:1px solid #14141e}tr:hover td{background:#1a1a25}
-tr:nth-child(even) td{background:#0d0d14}
-.table-container table thead th{background:#0a0a0f;position:sticky;top:0;z-index:2}
+.table-container{overflow-x:auto}
+.table-container table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+.table-container table thead{position:sticky;top:0;z-index:2;background:#0a0a0f}
+.table-container table thead th{text-align:left;padding:10px 12px;color:#94a3b8;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #1e1e2e;cursor:pointer;user-select:none}
+.table-container table thead th:hover{color:#4a9eff}
+.table-container table td{padding:10px 12px;border-bottom:1px solid #14141e}
+.table-container table tr:hover td{background:#1a1a25}
+.table-container table tr:nth-child(even) td{background:#0d0d14}
 .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s ease;border:none;display:inline-flex;align-items:center;gap:6px}
 .btn-primary{background:#4a9eff;color:#fff}.btn-primary:hover{background:#3a8eef}
 .btn-danger{background:#ff4444;color:#fff}.btn-danger:hover{background:#ee3333}
@@ -171,6 +174,10 @@ canvas{max-height:280px!important}
 .spinner{width:20px;height:20px;border:2px solid #1e1e2e;border-top-color:#4a9eff;border-radius:50%;animation:spin 0.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* Paper Trading loading overlay */
+.pt-loading{position:absolute;inset:0;background:rgba(13,13,20,0.85);border-radius:12px;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;backdrop-filter:blur(4px)}
+.pt-loading .spinner{width:32px;height:32px;border-width:3px}
+
 /* Confirmation dialog */
 .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;display:flex;align-items:center;justify-content:center}
 .confirm-box{background:#12121a;border:1px solid #1e1e2e;border-radius:12px;padding:24px;max-width:400px;width:90%;text-align:center}
@@ -257,7 +264,7 @@ canvas{max-height:200px!important}}
       <div style="white-space:nowrap"><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Weekly P&L</div><div id="weeklyPnl" style="font-size:18px;font-weight:600;color:#00ff88">+$1,285.00</div></div>
       <div style="white-space:nowrap"><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Drawdown</div><div id="drawdown" style="font-size:18px;font-weight:600;color:#ff4444">-2.4%</div></div>
       <div style="white-space:nowrap"><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Open Positions</div><div id="openPositions" style="font-size:18px;font-weight:600">3</div></div>
-      <div style="white-space:nowrap"><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Data Updated</div><div id="dataUpdated" style="font-size:18px;font-weight:600;color:#4a9eff">Oct 20, 2026</div></div>
+      <div style="white-space:nowrap"><div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Data Updated</div><div id="dataUpdated" style="font-size:18px;font-weight:600;color:#4a9eff">Oct 20, 2026</div></div>
     </div>
     <div style="display:flex;gap:8px;margin-left:auto">
       <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Open menu" onclick="toggleMobileMenu()">
@@ -272,6 +279,19 @@ canvas{max-height:200px!important}}
 
   <!-- DASHBOARD SECTION -->
   <div class="section active" id="section-dashboard">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="width:28px;height:28px;background:linear-gradient(135deg,#4a9eff,#00ff88);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0a0a0f">D</span>
+          <h2 style="font-size:18px;font-weight:700;margin:0;color:#e0e0e0">Dashboard</h2>
+        </div>
+        <p style="font-size:12px;color:#888;margin:0">Account overview, equity curve, and recent trades.</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:11px;color:#888">Last updated: <span id="ptLastUpdated" style="color:#4a9eff">--</span></span>
+        <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="renderDashboard()">Refresh</button>
+      </div>
+    </div>
     <div class="grid-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
       <div class="card metric-card glow-green"><div class="metric-label">Total Return</div><div class="metric-value" style="color:#00ff88">$8,420</div><div style="font-size:13px;color:#00ff88;margin-top:4px">+16.84%</div></div>
       <div class="card metric-card glow-blue"><div class="metric-label">Win Rate</div><div class="metric-value" style="color:#4a9eff">53.2%</div><div style="font-size:12px;color:#666;margin-top:4px">371 / 698 trades</div></div>
@@ -279,18 +299,25 @@ canvas{max-height:200px!important}}
       <div class="card metric-card"><div class="metric-label">Sharpe Ratio</div><div class="metric-value">1.42</div><div style="font-size:12px;color:#666;margin-top:4px">Risk-adjusted return</div></div>
     </div>
     <div class="grid-2" style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px">
-      <div class="card" style="padding:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Equity Curve</h3><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportChart('equityChart')">Export PNG</button></div><canvas id="equityChart" height="200"></canvas></div>
+      <div class="card" style="padding:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Equity Curve</h3><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportChart('equityChart')">Export PNG</button></div><canvas id="equityChart" height="200"></canvas></div>
       <div class="card" style="padding:20px"><h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Monthly Returns</h3><div id="monthlyHeatmap" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div></div>
     </div>
-    <div class="card" style="padding:20px;margin-bottom:24px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Daily P&L</h3><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportChart('dailyPnlChart')">Export PNG</button></div><canvas id="dailyPnlChart" height="120"></canvas></div>
+    <div class="card" style="padding:20px;margin-bottom:24px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Daily P&L</h3><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportChart('dailyPnlChart')">Export PNG</button></div><canvas id="dailyPnlChart" height="120"></canvas></div>
     <div class="card" style="padding:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Recent Trades</h3><div style="display:flex;gap:8px"><input class="input" placeholder="Search trades..." style="width:200px" id="tradeSearch" oninput="filterTrades()" aria-label="Search trades"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('recentTradesTable')">CSV</button></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Recent Trades</h3><div style="display:flex;gap:8px"><input class="input" placeholder="Search trades..." style="width:200px" id="tradeSearch" oninput="filterTrades()" aria-label="Search trades"><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportTableCSV('recentTradesTable')">CSV</button></div></div>
       <div class="table-container"><table id="recentTradesTable"><thead><tr><th onclick="sortTable('recentTradesTable',0)">Date</th><th onclick="sortTable('recentTradesTable',1)">Strategy</th><th onclick="sortTable('recentTradesTable',2)">Entry</th><th onclick="sortTable('recentTradesTable',3)">Exit</th><th onclick="sortTable('recentTradesTable',4)">Size</th><th onclick="sortTable('recentTradesTable',5)">P&L</th></tr></thead><tbody id="recentTradesBody"></tbody></table></div>
     </div>
   </div>
   <!-- STRATEGY COMPARISON -->
   <div class="section" id="section-strategies">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="width:28px;height:28px;background:linear-gradient(135deg,#4a9eff,#00ff88);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0a0a0f">S</span>
+        <h2 style="font-size:18px;font-weight:700;margin:0;color:#e0e0e0">Strategy Comparison</h2>
+      </div>
+      <p style="font-size:12px;color:#888;margin:0">Compare win rate, profit factor, and Sharpe across all strategies.</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
       <select class="input" id="strategyFilter" onchange="filterStrategies()" style="min-width:180px"><option value="all">All Strategies</option><option value="ORB">ORB Breakout</option><option value="VWAP">VWAP Reversion</option><option value="PDH">PDH/PDL Breakout</option><option value="Gap">Gap Fill</option></select>
       <div class="toggle" id="absPctToggle" onclick="toggleAbsPct()" role="switch" aria-label="Toggle absolute/percentage" tabindex="0"></div>
       <span style="font-size:12px;color:#666">Percentage</span>
@@ -335,7 +362,14 @@ canvas{max-height:200px!important}}
   </div>
   <!-- PORTFOLIO ANALYZER -->
   <div class="section" id="section-portfolio">
-    <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="width:28px;height:28px;background:linear-gradient(135deg,#4a9eff,#00ff88);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0a0a0f">P</span>
+        <h2 style="font-size:18px;font-weight:700;margin:0;color:#e0e0e0">Portfolio Analyzer</h2>
+      </div>
+      <p style="font-size:12px;color:#888;margin:0">Model allocations, drawdown, and Monte Carlo simulations.</p>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       <div class="tab active" data-portfolio="conservative" onclick="selectPortfolio('conservative')">Conservative</div>
       <div class="tab" data-portfolio="aggressive" onclick="selectPortfolio('aggressive')">Aggressive</div>
       <div class="tab" data-portfolio="diversified" onclick="selectPortfolio('diversified')">Diversified</div>
@@ -358,6 +392,13 @@ canvas{max-height:200px!important}}
   </div>
   <!-- TRADE JOURNAL -->
   <div class="section" id="section-journal">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="width:28px;height:28px;background:linear-gradient(135deg,#4a9eff,#00ff88);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#0a0a0f">J</span>
+        <h2 style="font-size:18px;font-weight:700;margin:0;color:#e0e0e0">Trade Journal</h2>
+      </div>
+      <p style="font-size:12px;color:#888;margin:0">Log trades, track win rate, avg R:R, and streaks.</p>
+    </div>
     <div class="grid-2" style="display:grid;grid-template-columns:1fr 2fr;gap:24px">
       <div>
         <div class="card" style="padding:20px;margin-bottom:16px">
@@ -387,7 +428,7 @@ canvas{max-height:200px!important}}
       </div>
       <div>
         <div class="card" style="padding:20px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Trade Journal</h3><div style="display:flex;gap:8px"><select class="input" id="journalFilterStrategy" onchange="filterJournal()" style="min-width:120px"><option value="all">All Strategies</option><option value="ORB">ORB</option><option value="VWAP">VWAP</option><option value="PDH">PDH/PDL</option><option value="Gap">Gap Fill</option></select><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('journalTable')">CSV</button></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600">Trade Journal</h3><div style="display:flex;gap:8px"><select class="input" id="journalFilterStrategy" onchange="filterJournal()" style="min-width:120px"><option value="all">All Strategies</option><option value="ORB">ORB</option><option value="VWAP">VWAP</option><option value="PDH">PDH/PDL</option><option value="Gap">Gap Fill</option></select><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportTableCSV('journalTable')">CSV</button></div></div>
           <div class="table-container"><table id="journalTable"><thead><tr><th onclick="sortTable('journalTable',0)">Date</th><th onclick="sortTable('journalTable',1)">Strategy</th><th onclick="sortTable('journalTable',2)">Entry</th><th onclick="sortTable('journalTable',3)">Exit</th><th onclick="sortTable('journalTable',4)">Size</th><th onclick="sortTable('journalTable',5)">P&L</th><th>Notes</th><th></th></tr></thead><tbody id="journalBody"></tbody></table></div>
         </div>
       </div>
@@ -434,7 +475,7 @@ canvas{max-height:200px!important}}
             <input type="file" accept=".csv" style="display:none" id="fileInput" onchange="handleFileUpload(event)">
           </div>
         </div>
-        <div class="card" style="padding:20px;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Data Preview</h3><div class="table-container" style="max-height:300px;overflow-y:auto"><table id="dataPreviewTable"><thead><tr><th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th></tr></thead><tbody id="dataPreviewBody"><tr><td colspan="6" style="text-align:center;color:#666;padding:20px">No data loaded</td></tr></tbody></table></div></div>
+        <div class="card" style="padding:20px;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Data Preview</h3><div class="table-container" style="max-height:300px;overflow-y:auto"><table id="dataPreviewTable"><thead><tr><th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th></tr></thead><tbody id="dataPreviewBody"><tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:20px">No data loaded. Upload a CSV with columns: Date, Open, High, Low, Close, Volume</td></tr></tbody></table></div></div>
         <div class="card" style="padding:20px"><h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Data Stats</h3><div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#666">Total Rows</span><span id="dataRows">0</span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#666">Date Range</span><span id="dataRange">--</span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#666">Price Range</span><span id="dataPrice">--</span></div></div></div>
       </div>
       <div>
@@ -451,7 +492,7 @@ canvas{max-height:200px!important}}
   </div>
 </div>
 <!-- PAPER TRADING SECTION -->
-<div class="section" id="section-paper-trading">
+<div class="section" id="section-paper-trading" style="position:relative">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px">
       <div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
@@ -497,20 +538,24 @@ canvas{max-height:200px!important}}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h3 style="font-size:14px;font-weight:600;margin:0">Next Day Signals</h3>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('paperSignalsTable')">CSV</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportTableCSV('paperSignalsTable')">CSV</button>
         </div>
       </div>
       <div class="table-container"><table id="paperSignalsTable"><thead><tr><th>Signal Date</th><th>Strategy</th><th>Direction</th><th>Entry</th><th>Target</th><th>Stop</th><th>Status</th></tr></thead><tbody id="paperSignalsBody"><tr><td colspan="7" style="text-align:center;color:#666;padding:20px">Loading signals...</td></tr></tbody></table></div>
     </div>
 
     <div class="card" style="padding:20px;margin-bottom:24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin:0">Paper Trade History</h3><div style="display:flex;gap:8px"><input class="input" placeholder="Search trades..." style="width:200px" id="ptTradeSearch" oninput="filterPTTrades()" aria-label="Search paper trades"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportTableCSV('paperTradesTable')">CSV</button></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin:0">Paper Trade History</h3><div style="display:flex;gap:8px"><input class="input" placeholder="Search trades..." style="width:200px" id="ptTradeSearch" oninput="filterPTTrades()" aria-label="Search paper trades"><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportTableCSV('paperTradesTable')">CSV</button></div></div>
       <div class="table-container"><table id="paperTradesTable"><thead><tr><th onclick="sortTable('paperTradesTable',0)">Date</th><th onclick="sortTable('paperTradesTable',1)">Strategy</th><th onclick="sortTable('paperTradesTable',2)">Direction</th><th onclick="sortTable('paperTradesTable',3)">Entry</th><th onclick="sortTable('paperTradesTable',4)">Exit</th><th onclick="sortTable('paperTradesTable',5)">P&L ($)</th><th onclick="sortTable('paperTradesTable',6)">Status</th></tr></thead><tbody id="paperTradesBody"><tr><td colspan="7" style="text-align:center;color:#666;padding:20px">Loading trades...</td></tr></tbody></table></div>
     </div>
 
     <div class="card" style="padding:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin:0">Equity Curve</h3><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="exportChart('ptEquityChart')">Export PNG</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin:0">Equity Curve</h3><button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="exportChart('ptEquityChart')">Export PNG</button></div>
       <canvas id="ptEquityChart" height="200"></canvas>
+    </div>
+    <div class="pt-loading" id="ptLoadingOverlay" style="display:none">
+      <div class="spinner"></div>
+      <span style="font-size:13px;color:#e0e0e0">Loading paper trading data...</span>
     </div>
   </div>
 <!-- MODALS -->
@@ -1106,6 +1151,8 @@ async function renderPaperTrading() {
   const totalEl = document.getElementById('ptTotalTrades');
   const signalsBody = document.getElementById('paperSignalsBody');
   const tradesBody = document.getElementById('paperTradesBody');
+  const loadingOverlay = document.getElementById('ptLoadingOverlay');
+  if (loadingOverlay) loadingOverlay.style.display = 'flex';
 
   let portfolio = { equity: 100000, total_pnl_usd: 0, winning_trades: 0, losing_trades: 0, total_trades: 0, equity_curve: [] };
   let signals = [];
@@ -1183,7 +1230,7 @@ async function renderPaperTrading() {
       </tr>
     `).join('');
   } else {
-    signalsBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#666;padding:20px">No signals for next trading day.</td></tr>';
+    signalsBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">No signals for next trading day. Signals appear after the daily paper trading run (weekdays 4:15pm ET).</td></tr>';
   }
 
   if (trades.length) {
@@ -1199,7 +1246,7 @@ async function renderPaperTrading() {
       </tr>
     `).join('');
   } else {
-    tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#666;padding:20px">No paper trades recorded yet.</td></tr>';
+    tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">No paper trades recorded yet. Trades appear after the daily paper trading run (weekdays 4:15pm ET).</td></tr>';
   }
 
   const curve = portfolio.equity_curve || [];
@@ -1212,6 +1259,7 @@ async function renderPaperTrading() {
       options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: false } } }
     });
   }
+  if (loadingOverlay) loadingOverlay.style.display = 'none';
 }
 
 function parseCSV(text) {
@@ -1241,6 +1289,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   renderDashboard();renderStrategies();renderJournal();renderRules();renderChecklist();renderPortfolioComparison();selectPortfolio('conservative');
   renderPaperTrading();
   updateSessionTimer();
+  document.getElementById('dataUpdated').textContent = DATA_LAST_UPDATED;
   // Auto-calc journal P&L
   ['journalEntry','journalExit','journalSize'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.addEventListener('input',renderJournal);
