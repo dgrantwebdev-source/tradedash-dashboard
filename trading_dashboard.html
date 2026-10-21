@@ -31,11 +31,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:#0a0a0f;color:#e0e0e0;m
 .metric-card{padding:20px}.metric-value{font-size:28px;font-weight:700;line-height:1.2}.metric-label{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
 .section{display:none}.section.active{display:block;animation:fadeIn 0.2s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.table-container{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;padding:10px 12px;color:#94a3b8;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #1e1e2e;cursor:pointer;user-select:none}
-th:hover{color:#4a9eff}td{padding:10px 12px;border-bottom:1px solid #14141e}tr:hover td{background:#1a1a25}
-tr:nth-child(even) td{background:#0d0d14}
-.table-container table thead th{background:#0a0a0f;position:sticky;top:0;z-index:2}
+.table-container{overflow-x:auto}
+.table-container table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+.table-container table thead{position:sticky;top:0;z-index:2;background:#0a0a0f}
+.table-container table thead th{text-align:left;padding:10px 12px;color:#94a3b8;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #1e1e2e;cursor:pointer;user-select:none}
+.table-container table thead th:hover{color:#4a9eff}
+.table-container table td{padding:10px 12px;border-bottom:1px solid #14141e}
+.table-container table tr:hover td{background:#1a1a25}
+.table-container table tr:nth-child(even) td{background:#0d0d14}
 .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s ease;border:none;display:inline-flex;align-items:center;gap:6px}
 .btn-primary{background:#4a9eff;color:#fff}.btn-primary:hover{background:#3a8eef}
 .btn-danger{background:#ff4444;color:#fff}.btn-danger:hover{background:#ee3333}
