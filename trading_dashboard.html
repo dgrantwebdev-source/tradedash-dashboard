@@ -264,7 +264,7 @@ canvas{max-height:200px!important}}
       <div style="white-space:nowrap"><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Weekly P&L</div><div id="weeklyPnl" style="font-size:18px;font-weight:600;color:#00ff88">+$1,285.00</div></div>
       <div style="white-space:nowrap"><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Drawdown</div><div id="drawdown" style="font-size:18px;font-weight:600;color:#ff4444">-2.4%</div></div>
       <div style="white-space:nowrap"><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Open Positions</div><div id="openPositions" style="font-size:18px;font-weight:600">3</div></div>
-      <div style="white-space:nowrap"><div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px">Data Updated</div><div id="dataUpdated" style="font-size:18px;font-weight:600;color:#4a9eff">Oct 20, 2026</div></div>
+      <div style="white-space:nowrap"><div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Data Updated</div><div id="dataUpdated" style="font-size:18px;font-weight:600;color:#4a9eff">Oct 20, 2026</div></div>
     </div>
     <div style="display:flex;gap:8px;margin-left:auto">
       <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Open menu" onclick="toggleMobileMenu()">
@@ -1289,6 +1289,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   renderDashboard();renderStrategies();renderJournal();renderRules();renderChecklist();renderPortfolioComparison();selectPortfolio('conservative');
   renderPaperTrading();
   updateSessionTimer();
+  document.getElementById('dataUpdated').textContent = DATA_LAST_UPDATED;
   // Auto-calc journal P&L
   ['journalEntry','journalExit','journalSize'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.addEventListener('input',renderJournal);
