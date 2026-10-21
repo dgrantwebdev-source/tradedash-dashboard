@@ -454,7 +454,7 @@ canvas{max-height:200px!important}}
             <input type="file" accept=".csv" style="display:none" id="fileInput" onchange="handleFileUpload(event)">
           </div>
         </div>
-        <div class="card" style="padding:20px;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Data Preview</h3><div class="table-container" style="max-height:300px;overflow-y:auto"><table id="dataPreviewTable"><thead><tr><th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th></tr></thead><tbody id="dataPreviewBody"><tr><td colspan="6" style="text-align:center;color:#666;padding:20px">No data loaded</td></tr></tbody></table></div></div>
+        <div class="card" style="padding:20px;margin-bottom:16px"><h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Data Preview</h3><div class="table-container" style="max-height:300px;overflow-y:auto"><table id="dataPreviewTable"><thead><tr><th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th></tr></thead><tbody id="dataPreviewBody"><tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:20px">No data loaded. Upload a CSV with columns: Date, Open, High, Low, Close, Volume</td></tr></tbody></table></div></div>
         <div class="card" style="padding:20px"><h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Data Stats</h3><div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#666">Total Rows</span><span id="dataRows">0</span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#666">Date Range</span><span id="dataRange">--</span></div><div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#666">Price Range</span><span id="dataPrice">--</span></div></div></div>
       </div>
       <div>
@@ -1209,7 +1209,7 @@ async function renderPaperTrading() {
       </tr>
     `).join('');
   } else {
-    signalsBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#666;padding:20px">No signals for next trading day.</td></tr>';
+    signalsBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">No signals for next trading day. Signals appear after the daily paper trading run (weekdays 4:15pm ET).</td></tr>';
   }
 
   if (trades.length) {
@@ -1225,7 +1225,7 @@ async function renderPaperTrading() {
       </tr>
     `).join('');
   } else {
-    tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#666;padding:20px">No paper trades recorded yet.</td></tr>';
+    tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px">No paper trades recorded yet. Trades appear after the daily paper trading run (weekdays 4:15pm ET).</td></tr>';
   }
 
   const curve = portfolio.equity_curve || [];
